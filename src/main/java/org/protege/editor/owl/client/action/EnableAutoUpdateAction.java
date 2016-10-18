@@ -12,6 +12,7 @@ import java.util.concurrent.ScheduledFuture;
 
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenuItem;
+import javax.swing.SwingUtilities;
 
 import org.protege.editor.owl.client.LocalHttpClient;
 import org.protege.editor.owl.client.api.exception.SynchronizationException;
@@ -143,7 +144,7 @@ public class EnableAutoUpdateAction extends AbstractClientAction implements Clie
 
         private void performUpdate(List<OWLOntologyChange> updates) {
         	getSessionRecorder().stopRecording();       	
-            ontology.getOWLOntologyManager().applyChanges(updates);
+            SwingUtilities.invokeLater(() -> ontology.getOWLOntologyManager().applyChanges(updates));
             getOWLEditorKit().getSearchManager().updateIndex(updates);
             getSessionRecorder().startRecording();
         	
