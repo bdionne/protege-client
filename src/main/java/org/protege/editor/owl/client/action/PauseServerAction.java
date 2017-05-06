@@ -13,6 +13,7 @@ import java.util.concurrent.ScheduledFuture;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenuItem;
 
+import edu.stanford.protege.metaproject.impl.ServerStatus;
 import org.protege.editor.owl.client.LocalHttpClient;
 import org.protege.editor.owl.client.api.exception.AuthorizationException;
 import org.protege.editor.owl.client.api.exception.ClientRequestException;
@@ -73,11 +74,18 @@ public class PauseServerAction extends AbstractClientAction implements ClientSes
         if (event.hasCategory(EventCategory.SWITCH_ONTOLOGY)) {
             activeVersionOntology = Optional.ofNullable(event.getSource().getActiveVersionOntology());
             if (activeVersionOntology.isPresent()) {
-            	if (((LocalHttpClient) getClientSession().getActiveClient()).isWorkFlowManager()) {
-            		setEnabled(true);
-            	} else {
-            		setEnabled(false);
-            	}
+                LocalHttpClient client = (LocalHttpClient) getClientSession().getActiveClient();
+                    if (client.isWorkFlowManager()) {
+                    try {
+                        ServerStatus status = client.getServerStatus();
+                        setEnabled(!status.isPaused);
+                    }
+                    catch (ClientRequestException e) {
+                        setEnabled(false);
+                    }
+                } else {
+                    setEnabled(false);
+                }
             }
             
         }
