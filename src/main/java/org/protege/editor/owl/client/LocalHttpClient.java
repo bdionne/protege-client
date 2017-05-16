@@ -1,5 +1,6 @@
 package org.protege.editor.owl.client;
 
+import com.google.common.base.Strings;
 import edu.stanford.protege.metaproject.ConfigurationManager;
 import edu.stanford.protege.metaproject.api.*;
 import edu.stanford.protege.metaproject.api.exception.ObjectConversionException;
@@ -91,6 +92,11 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 				.writeTimeout(360, TimeUnit.SECONDS)
 				.readTimeout(360, TimeUnit.SECONDS)
 				.build();
+		// Not all callers are caeful enough to pass the protocol here. So we add a default (safe) one
+		URI serverUri = URI.create(serverAddress);
+		if (Strings.isNullOrEmpty(serverUri.getScheme())) {
+			serverAddress = "https://" + serverAddress;
+		}
 		this.serverAddress = serverAddress;
 		login(username, password);
 		initConfig();
