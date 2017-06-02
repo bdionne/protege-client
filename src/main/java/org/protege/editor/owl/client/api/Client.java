@@ -113,5 +113,5 @@ public interface Client {
     ChangeHistory commit(ProjectId projectId, CommitBundle commitBundle)
             throws AuthorizationException, SynchronizationException, ClientRequestException;
 
-    List<Project> getUnclassifiedProjects();
+    List<Project> classifiableProjects();
 }

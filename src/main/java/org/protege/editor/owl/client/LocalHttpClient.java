@@ -258,7 +258,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	@Override
-	public List<Project> getUnclassifiedProjects() {
+	public List<Project> classifiableProjects() {
 		try {
 			Response response = get(PROJECTS_UNCLASSIFIED);
 			ObjectInputStream ois = new ObjectInputStream(response.body().byteStream());
