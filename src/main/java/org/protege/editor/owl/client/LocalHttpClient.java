@@ -1,5 +1,7 @@
 package org.protege.editor.owl.client;
 
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import edu.stanford.protege.metaproject.ConfigurationManager;
 import edu.stanford.protege.metaproject.api.*;
 import edu.stanford.protege.metaproject.api.exception.ObjectConversionException;
@@ -42,6 +44,7 @@ import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import java.io.*;
 import java.net.URI;
 import java.nio.charset.Charset;
@@ -51,11 +54,9 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipInputStream;
-import java.util.concurrent.Executors;
-
-import com.google.common.util.concurrent.*;
 
 import static org.protege.editor.owl.server.http.ServerEndpoints.*;
 import static org.protege.editor.owl.server.http.ServerProperties.*;
@@ -338,7 +339,8 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	public VersionedOWLOntology buildVersionedOntology(ServerDocument sdoc, OWLOntologyManager owlManager,
-			ProjectId pid) throws LoginTimeoutException, AuthorizationException, ClientRequestException {
+			@Nonnull ProjectId pid) throws LoginTimeoutException, AuthorizationException, ClientRequestException {
+		if (pid == null) throw new IllegalArgumentException();
 		setCurrentProject(pid);
 		if (!getSnapShotFile(pid).exists()) {
 			SnapShot snapshot = getSnapShot(pid);
@@ -361,7 +363,8 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		}
 	}
 
-	private static File getSnapShotFile(ProjectId projectId) {
+	private static File getSnapShotFile(@Nonnull ProjectId projectId) {
+		if (projectId == null) throw new IllegalArgumentException();
 		try {
 			Files.createDirectories(Paths.get(projectId.get()));
 		}
@@ -372,12 +375,14 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		return new File(projectId.get() + File.separator + "history-snapshot");
 	}
 
-	private static String getSnapshotChecksum(ProjectId projectId) throws IOException {
+	private static String getSnapshotChecksum(@Nonnull ProjectId projectId) throws IOException {
+		if (projectId == null) throw new IllegalArgumentException();
 		Path path = Paths.get(getSnapShotFile(projectId).getAbsolutePath() + SNAPSHOT_CHECKSUM);
 		return new String(Files.readAllBytes(path), Charset.defaultCharset());
 	}
 
-	public OWLOntology loadSnapShot(OWLOntologyManager manIn, ProjectId pid) throws ClientRequestException {
+	public OWLOntology loadSnapShot(OWLOntologyManager manIn, @Nonnull ProjectId pid) throws ClientRequestException {
+		if (pid == null) throw new IllegalArgumentException();
 		try {
 			BinaryOWLOntologyDocumentSerializer serializer = new BinaryOWLOntologyDocumentSerializer();
 			OWLOntology ontIn = manIn.createOntology();
@@ -431,7 +436,8 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		return b;
 	}
 
-	public void createLocalSnapShot(OWLOntology ont, ProjectId projectId) throws ClientRequestException {
+	public void createLocalSnapShot(OWLOntology ont, @Nonnull ProjectId projectId) throws ClientRequestException {
+		if (projectId == null) throw new IllegalArgumentException();
 		BufferedOutputStream outputStream = null;
 		try {
 			BinaryOWLOntologyDocumentSerializer serializer = new BinaryOWLOntologyDocumentSerializer();
@@ -810,7 +816,8 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		}
 	}
 
-	private void writeSnapshotChecksum(ProjectId projectId, String checksum) throws IOException {
+	private void writeSnapshotChecksum(@Nonnull ProjectId projectId, String checksum) throws IOException {
+		if (projectId == null) throw new IllegalArgumentException();
 		File snapshotFile = getSnapShotFile(projectId);
 		OutputStream checksumStream = new FileOutputStream(snapshotFile.getAbsolutePath() + SNAPSHOT_CHECKSUM);
 		checksumStream.write(checksum.getBytes());
