@@ -908,7 +908,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 			return false;
 		}
     }
-
+  
     public ServerStatus getServerStatus() throws ClientRequestException {
 		Response response = null;
 		try {
@@ -924,6 +924,9 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 				response.body().close();
 			}
 		}
+      
+	public void setProjectId(ProjectId projectId) {
+		this.projectId = projectId;
 	}
 
 }
