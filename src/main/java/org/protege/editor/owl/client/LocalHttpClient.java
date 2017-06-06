@@ -27,6 +27,7 @@ import org.protege.editor.owl.client.util.ClientUtils;
 import org.protege.editor.owl.client.util.Config;
 import org.protege.editor.owl.server.api.CommitBundle;
 import org.protege.editor.owl.server.http.ServerProperties;
+import org.protege.editor.owl.server.http.exception.ServerException;
 import org.protege.editor.owl.server.http.messages.History;
 import org.protege.editor.owl.server.http.messages.HttpAuthResponse;
 import org.protege.editor.owl.server.http.messages.LoginCreds;
@@ -54,6 +55,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipInputStream;
@@ -258,6 +260,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	@Override
 	public ChangeHistory commit(ProjectId projectId, CommitBundle commitBundle)
 		throws AuthorizationException, ClientRequestException {
+		checkSnapshotChecksumPresent(projectId);
 		try {
 			ByteArrayOutputStream b = writeRequestArgumentsIntoByteStream(projectId, commitBundle);
 			Response response = post(COMMIT,
@@ -267,6 +270,12 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
 			throw new ClientRequestException("Unable to send request to server (see error log for details)", e);
+		}
+	}
+
+	private void checkSnapshotChecksumPresent(ProjectId projectId) {
+		if (!getSnapshotChecksum(projectId).isPresent()) {
+			throw new IllegalArgumentException("Missing snapshot checksum for project " + projectId);
 		}
 	}
 
@@ -316,7 +325,6 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	private List<String> retrieveCodesFromServerResponse(Response response) throws ClientRequestException {
 		try {
 			ObjectInputStream ois = new ObjectInputStream(response.body().byteStream());
-			@SuppressWarnings("unchecked")
 			List<String> codes = (List<String>) ois.readObject();
 			return codes;
 		} catch (IOException e) {
@@ -370,10 +378,14 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		return new File(projectId.get() + File.separator + "history-snapshot");
 	}
 
-	private static String getSnapshotChecksum(@Nonnull ProjectId projectId) throws IOException {
+	private static Optional<String> getSnapshotChecksum(@Nonnull ProjectId projectId) {
 		if (projectId == null) throw new IllegalArgumentException();
 		Path path = Paths.get(getSnapShotFile(projectId).getAbsolutePath() + SNAPSHOT_CHECKSUM);
-		return new String(Files.readAllBytes(path), Charset.defaultCharset());
+		try {
+			return Optional.of(new String(Files.readAllBytes(path), Charset.defaultCharset()));
+		} catch (IOException e) {
+			return Optional.empty();
+		}
 	}
 
 	public OWLOntology loadSnapShot(OWLOntologyManager manIn, @Nonnull ProjectId pid) throws ClientRequestException {
@@ -632,10 +644,10 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		Request.Builder builder = postBuilder(url, body, withCredential);
 
 		if (projectId != null) {
-			try {
-				String snapshotChecksum = getSnapshotChecksum(projectId);
-				builder.addHeader(ServerProperties.SNAPSHOT_CHECKSUM_HEADER, snapshotChecksum);
-			} catch (IOException e) {
+			Optional<String> snapshotChecksum = getSnapshotChecksum(projectId);
+			if (snapshotChecksum.isPresent()) {
+				builder.addHeader(ServerProperties.SNAPSHOT_CHECKSUM_HEADER, snapshotChecksum.get());
+			} else {
 				// This is not always an error. Before login and project load projectId == null
 				logger.debug("Can not find snapshot checksum for ProjectId " + projectId);
 			}
@@ -655,14 +667,14 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 						SnapShot snapshot = getSnapShot(projectId);
 						createLocalSnapShot(snapshot.getOntology(), projectId);
 					} catch (AuthorizationException | ClientRequestException e) {
-						logger.error(e.getMessage(), e);
+						throw new RuntimeException(e);
 					} finally {
 						dlg.setVisible(false);
 					}
-				});
+				}).get();
 				dlg.setVisible(true);
 
-				String snapshotChecksum = getSnapshotChecksum(projectId);
+				String snapshotChecksum = getSnapshotChecksum(projectId).get();
 
 				builder = postBuilder(url, body, withCredential)
 					.addHeader(ServerProperties.SNAPSHOT_CHECKSUM_HEADER, snapshotChecksum);
@@ -677,6 +689,8 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
 			throw new ClientRequestException("Unable to send request to server (see error log for details)", e);
+		} catch (InterruptedException | ExecutionException e) {
+			throw new RuntimeException(e);
 		}
 	}
 
