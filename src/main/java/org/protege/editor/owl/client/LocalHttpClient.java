@@ -595,7 +595,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 
 			ObjectInputStream ois = new ObjectInputStream(response.body().byteStream());
 			String snapshotChecksum = (String) ois.readObject();
-			writeSnapshotChecksum(project.getId(), snapshotChecksum);
+			writeSnapshotChecksum(projectId, snapshotChecksum);
 
 			createLocalSnapShot(snapshot.getOntology(), projectId);
 		} catch (IOException | AuthorizationException | ClassNotFoundException e) {
