@@ -81,10 +81,6 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	private UserId userId;
 	private UserInfo userInfo;
 
-	public void setProjectId(ProjectId projectId) {
-		this.projectId = projectId;
-	}
-
 	private ProjectId projectId;
 	private Project project;
 
