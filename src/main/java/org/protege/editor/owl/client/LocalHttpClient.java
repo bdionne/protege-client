@@ -787,7 +787,8 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		}
 	}
 
-	public List<String> getCodes(int no) throws LoginTimeoutException, AuthorizationException, ClientRequestException {
+	public List<String> getCodes(int no, @Nonnull ProjectId projectId) throws
+		LoginTimeoutException, AuthorizationException, ClientRequestException {
 		return retrieveCodesFromServerResponse(get(GEN_CODE + "?count=" + no + "&projectid=" + projectId.get()));
 	}
 
@@ -818,7 +819,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		}
 	}
 
-	public void putEVSHistory(String code, String name, String operation, String reference)
+	public void putEVSHistory(String code, String name, String operation, String reference, @Nonnull ProjectId projectId)
 		throws LoginTimeoutException, AuthorizationException, ClientRequestException {
 		try {
 			History evsHistory = new History(userId.get(), code, name, operation, reference);
