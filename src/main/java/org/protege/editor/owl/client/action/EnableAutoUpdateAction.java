@@ -13,6 +13,9 @@ import java.util.concurrent.ScheduledFuture;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenuItem;
 
+import edu.stanford.protege.metaproject.api.Project;
+import edu.stanford.protege.metaproject.api.ProjectId;
+import org.protege.editor.owl.client.ClientSession;
 import org.protege.editor.owl.client.LocalHttpClient;
 import org.protege.editor.owl.client.api.exception.SynchronizationException;
 import org.protege.editor.owl.client.event.ClientSessionChangeEvent;
@@ -179,7 +182,8 @@ public class EnableAutoUpdateAction extends AbstractClientAction implements Clie
 
         private boolean isUpdated() {
             try {
-                DocumentRevision remoteHead = LocalHttpClient.current_user().getRemoteHeadRevision(vont);
+            	ProjectId projectId = getClientSession().getActiveProject();
+                DocumentRevision remoteHead = LocalHttpClient.current_user().getRemoteHeadRevision(vont, projectId);
                 DocumentRevision localHead = vont.getHeadRevision();
                 return localHead.sameAs(remoteHead);
             }
@@ -197,7 +201,8 @@ public class EnableAutoUpdateAction extends AbstractClientAction implements Clie
             //List<OWLOntologyChange> changes = new ArrayList<>();
         	ChangeHistory remoteChangeHistory = null;
             try {
-                remoteChangeHistory = LocalHttpClient.current_user().getLatestChanges(vont);
+            	ProjectId projectId = getClientSession().getActiveProject();
+                remoteChangeHistory = LocalHttpClient.current_user().getLatestChanges(vont, projectId);
                 //changes = ChangeHistoryUtils.getOntologyChanges(remoteChangeHistory, ontology);
             }
             catch (Exception e) {

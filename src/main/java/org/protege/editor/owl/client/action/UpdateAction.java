@@ -14,6 +14,8 @@ import java.util.concurrent.Future;
 
 import edu.stanford.protege.metaproject.api.AuthToken;
 
+import edu.stanford.protege.metaproject.api.Project;
+import edu.stanford.protege.metaproject.api.ProjectId;
 import org.protege.editor.owl.client.LocalHttpClient;
 import org.protege.editor.owl.client.api.exception.LoginTimeoutException;
 import org.protege.editor.owl.client.api.exception.SynchronizationException;
@@ -170,7 +172,8 @@ public class UpdateAction extends AbstractClientAction implements ClientSessionL
 
         private boolean isUpdated() {
             try {
-                DocumentRevision remoteHead = LocalHttpClient.current_user().getRemoteHeadRevision(vont);
+                ProjectId projectId = getClientSession().getActiveProject();
+                DocumentRevision remoteHead = LocalHttpClient.current_user().getRemoteHeadRevision(vont, projectId);
                 DocumentRevision localHead = vont.getHeadRevision();
                 return localHead.sameAs(remoteHead);
             }
@@ -188,7 +191,8 @@ public class UpdateAction extends AbstractClientAction implements ClientSessionL
             //List<OWLOntologyChange> changes = new ArrayList<>();
         	ChangeHistory remoteChangeHistory = null;
             try {
-                remoteChangeHistory = LocalHttpClient.current_user().getLatestChanges(vont);
+                ProjectId projectId = getClientSession().getActiveProject();
+                remoteChangeHistory = LocalHttpClient.current_user().getLatestChanges(vont, projectId);
                 //changes = ChangeHistoryUtils.getOntologyChanges(remoteChangeHistory, ontology);
             }
             catch (LoginTimeoutException e) {
