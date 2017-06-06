@@ -83,7 +83,6 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	private UserInfo userInfo;
 
 	private ProjectId projectId;
-	private Project project;
 
 	private AuthToken authToken;
 
@@ -176,10 +175,6 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		}
 	}
 
-
-	public Project getCurrentProject() {
-		return project;
-	}
 
 	@Override
 	public AuthToken getAuthToken() {
@@ -361,7 +356,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		try {
 			projectId = pid;
 			config.setActiveProject(pid);
-			project = config.getCurrentConfig().getProject(pid);
+			config.getCurrentConfig().getProject(pid);
 		} catch (UnknownProjectIdException e) {
 			logger.error(e.getMessage());
 			throw new ClientRequestException("Client failed to get the project (see error log for details)", e);
