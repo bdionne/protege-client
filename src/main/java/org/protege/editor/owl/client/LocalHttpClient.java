@@ -238,7 +238,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	@Override
-	public void deleteProject(ProjectId projectId, boolean includeFile)
+	public void deleteProject(@Nonnull ProjectId projectId, boolean includeFile)
 		throws AuthorizationException, LoginTimeoutException, ClientRequestException {
 		String requestUrl = PROJECT + "?projectid=" + projectId.get();
 		delete(requestUrl, true); // send request to server
@@ -246,7 +246,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	@Override
-	public ServerDocument openProject(ProjectId projectId)
+	public ServerDocument openProject(@Nonnull ProjectId projectId)
 		throws AuthorizationException, LoginTimeoutException, ClientRequestException {
 		if (getClientType() == UserType.ADMIN) { // admin clients cannot edit/browse ontologies
 			throw new ClientRequestException("Admin clients cannot open projects");
@@ -257,7 +257,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	@Override
-	public ChangeHistory commit(ProjectId projectId, CommitBundle commitBundle)
+	public ChangeHistory commit(@Nonnull ProjectId projectId, CommitBundle commitBundle)
 		throws AuthorizationException, ClientRequestException {
 		checkSnapshotChecksumPresent(projectId);
 		try {
@@ -273,7 +273,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		}
 	}
 
-	private void checkSnapshotChecksumPresent(ProjectId projectId) {
+	private void checkSnapshotChecksumPresent(@Nonnull ProjectId projectId) {
 		if (!getSnapshotChecksum(projectId).isPresent()) {
 			throw new IllegalArgumentException("Missing snapshot checksum for project " + projectId);
 		}
@@ -344,7 +344,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	public VersionedOWLOntology buildVersionedOntology(ServerDocument sdoc, OWLOntologyManager owlManager,
 													   @Nonnull ProjectId pid)
 			throws LoginTimeoutException, AuthorizationException, ClientRequestException {
-		if (pid == null) throw new IllegalArgumentException();
+		if (pid == null) throw new IllegalArgumentException("projectId is null");
 		setCurrentProject(pid);
 		if (!getSnapShotFile(pid).exists()) {
 			SnapShot snapshot = getSnapShot(pid);
@@ -356,7 +356,8 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		return new VersionedOWLOntologyImpl(sdoc, targetOntology, remoteChangeHistory);
 	}
 
-	private void setCurrentProject(ProjectId pid) throws ClientRequestException {
+	private void setCurrentProject(@Nonnull ProjectId pid) throws ClientRequestException {
+		if (pid == null) throw new IllegalArgumentException("projectId is null");
 		try {
 			projectId = pid;
 			config.setActiveProject(pid);
@@ -368,7 +369,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	private static File getSnapShotFile(@Nonnull ProjectId projectId) {
-		if (projectId == null) throw new IllegalArgumentException();
+		if (projectId == null) throw new IllegalArgumentException("projectId is null");
 		try {
 			Files.createDirectories(Paths.get(projectId.get()));
 		} catch (IOException e) {
@@ -379,7 +380,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	private static Optional<String> getSnapshotChecksum(@Nonnull ProjectId projectId) {
-		if (projectId == null) throw new IllegalArgumentException();
+		if (projectId == null) throw new IllegalArgumentException("projectId is null");
 		Path path = Paths.get(getSnapShotFile(projectId).getAbsolutePath() + SNAPSHOT_CHECKSUM);
 		try {
 			return Optional.of(new String(Files.readAllBytes(path), Charset.defaultCharset()));
@@ -389,7 +390,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	public OWLOntology loadSnapShot(OWLOntologyManager manIn, @Nonnull ProjectId pid) throws ClientRequestException {
-		if (pid == null) throw new IllegalArgumentException();
+		if (pid == null) throw new IllegalArgumentException("projectId is null");
 		try {
 			BinaryOWLOntologyDocumentSerializer serializer = new BinaryOWLOntologyDocumentSerializer();
 			OWLOntology ontIn = manIn.createOntology();
@@ -442,7 +443,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	public void createLocalSnapShot(OWLOntology ont, @Nonnull ProjectId projectId) throws ClientRequestException {
-		if (projectId == null) throw new IllegalArgumentException();
+		if (projectId == null) throw new IllegalArgumentException("projectId is null");
 		BufferedOutputStream outputStream = null;
 		try {
 			BinaryOWLOntologyDocumentSerializer serializer = new BinaryOWLOntologyDocumentSerializer();
@@ -462,7 +463,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		}
 	}
 
-	public SnapShot getSnapShot(ProjectId projectId) throws LoginTimeoutException, AuthorizationException,
+	public SnapShot getSnapShot(@Nonnull ProjectId projectId) throws LoginTimeoutException, AuthorizationException,
 		ClientRequestException {
 		String requestUrl = PROJECT_SNAPSHOT + "?projectid=" + projectId.get();
 		Response response = get(requestUrl); // send request to server
@@ -487,8 +488,9 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		}
 	}
 
-	public ChangeHistory getAllChanges(ServerDocument sdoc, ProjectId projectId) throws LoginTimeoutException,
+	public ChangeHistory getAllChanges(ServerDocument sdoc, @Nonnull ProjectId projectId) throws LoginTimeoutException,
 		AuthorizationException, ClientRequestException {
+		if (projectId == null) throw new IllegalArgumentException("projectId is null");
 		try {
 			HistoryFile historyFile = sdoc.getHistoryFile();
 			ByteArrayOutputStream b = writeRequestArgumentsIntoByteStream(historyFile);
@@ -511,8 +513,9 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		return b;
 	}
 
-	public DocumentRevision getRemoteHeadRevision(VersionedOWLOntology vont, ProjectId projectId) throws
+	public DocumentRevision getRemoteHeadRevision(VersionedOWLOntology vont, @Nonnull ProjectId projectId) throws
 		AuthorizationException, ClientRequestException {
+		if (projectId == null) throw new IllegalArgumentException("projectId is null");
 		try {
 			HistoryFile historyFile = vont.getServerDocument().getHistoryFile();
 			ByteArrayOutputStream b = writeRequestArgumentsIntoByteStream(historyFile);
@@ -543,14 +546,16 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		}
 	}
 
-	public ChangeHistory getLatestChanges(VersionedOWLOntology vont, ProjectId projectId)
+	public ChangeHistory getLatestChanges(VersionedOWLOntology vont, @Nonnull ProjectId projectId)
 			throws LoginTimeoutException, AuthorizationException, ClientRequestException {
+		if (projectId == null) throw new IllegalArgumentException("projectId is null");
 		DocumentRevision start = vont.getChangeHistory().getHeadRevision();
 		return getLatestChanges(vont.getServerDocument(), start, projectId);
 	}
 
-	public ChangeHistory getLatestChanges(ServerDocument sdoc, DocumentRevision start, ProjectId projectId)
+	public ChangeHistory getLatestChanges(ServerDocument sdoc, DocumentRevision start, @Nonnull ProjectId projectId)
 		throws AuthorizationException, ClientRequestException {
+		if (projectId == null) throw new IllegalArgumentException("projectId is null");
 		try {
 			HistoryFile historyFile = sdoc.getHistoryFile();
 			ByteArrayOutputStream b = writeRequestArgumentsIntoByteStream(start, historyFile);
@@ -574,7 +579,8 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		return b;
 	}
 
-	public void squashHistory(SnapShot snapshot, ProjectId projectId) throws ClientRequestException {
+	public void squashHistory(SnapShot snapshot, @Nonnull ProjectId projectId) throws ClientRequestException {
+		if (projectId == null) throw new IllegalArgumentException("projectId is null");
 		checkSnapshotChecksumPresent(projectId);
 		ByteArrayOutputStream b = new ByteArrayOutputStream();
 		try {
@@ -641,7 +647,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		return builder;
 	}
 
-	private Response postWithProjectId(String url, RequestBody body, ProjectId projectId, boolean withCredential)
+	private Response postWithProjectId(String url, RequestBody body, @Nonnull ProjectId projectId, boolean withCredential)
 			throws AuthorizationException, ClientRequestException {
 		if (projectId == null) {
 			throw new RuntimeException("POST projectId is null: " + url);
@@ -838,7 +844,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	private void writeSnapshotChecksum(@Nonnull ProjectId projectId, String checksum) throws IOException {
-		if (projectId == null) throw new IllegalArgumentException();
+		if (projectId == null) throw new IllegalArgumentException("projectId is null");
 		File snapshotFile = getSnapShotFile(projectId);
 		OutputStream checksumStream = new FileOutputStream(snapshotFile.getAbsolutePath() + SNAPSHOT_CHECKSUM);
 		checksumStream.write(checksum.getBytes());
