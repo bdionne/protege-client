@@ -615,19 +615,19 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	@Override
-	public List<Role> getActiveRoles() {
+	public List<Role> getActiveRoles(ProjectId projectId) {
 		List<Role> activeRoles = new ArrayList<>();
-		if (getRemoteProject().isPresent()) {
-			activeRoles = config.getRoles(userId, getRemoteProject().get(), GlobalPermissions.INCLUDED);
+		if (projectId != null) {
+			activeRoles = config.getRoles(userId, projectId, GlobalPermissions.INCLUDED);
 		}
 		return activeRoles;
 	}
 
 	@Override
-	public List<Operation> getActiveOperations() {
+	public List<Operation> getActiveOperations(ProjectId projectId) {
 		List<Operation> activeOperations = new ArrayList<>();
-		if (getRemoteProject().isPresent()) {
-			activeOperations = config.getOperations(userId, getRemoteProject().get());
+		if (projectId != null) {
+			activeOperations = config.getOperations(userId, projectId);
 		}
 		return activeOperations;
 	}
@@ -828,12 +828,11 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		}
 	}
 
-	public void genConceptHistory()
+	public void genConceptHistory(@Nonnull ProjectId projectId)
 		throws LoginTimeoutException, AuthorizationException, ClientRequestException {
+		if (projectId == null) throw new IllegalArgumentException("projectId cannot be null");
 		try {
-
-			get(GEN_CON_HIST + "?projectid=" + projectId.get());
-
+			get(GEN_CON_HIST + "?projectid=" + projectId);
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 			throw new ClientRequestException("Failed to successfuly generate concept history.", e);
@@ -879,11 +878,6 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		}
 	}
 
-
-	public Optional<ProjectId> getRemoteProject() {
-		return Optional.ofNullable(projectId);
-	}
-
 	public boolean codeIsLessThan(String lower, String upper) {
 
 		String p = config.getCurrentConfig().getProperty(CODEGEN_PREFIX);
@@ -916,10 +910,10 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 
 	}
 
-	public boolean isWorkFlowManager() {
+	public boolean isWorkFlowManager(ProjectId projectId) {
 		try {
 			Role wfm = getRole(new RoleIdImpl("mp-project-manager"));
-			return getActiveRoles().contains(wfm);
+			return getActiveRoles(projectId).contains(wfm);
 		} catch (ClientRequestException e) {
 			e.printStackTrace();
 			return false;

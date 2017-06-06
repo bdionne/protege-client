@@ -75,7 +75,7 @@ public class PauseServerAction extends AbstractClientAction implements ClientSes
             activeVersionOntology = Optional.ofNullable(event.getSource().getActiveVersionOntology());
             if (activeVersionOntology.isPresent()) {
                 LocalHttpClient client = (LocalHttpClient) getClientSession().getActiveClient();
-                    if (client.isWorkFlowManager()) {
+                    if (client.isWorkFlowManager(getClientSession().getActiveProject())) {
                     try {
                         ServerStatus status = client.getServerStatus();
                         setEnabled(!status.isPaused);
