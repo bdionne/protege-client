@@ -346,7 +346,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 			throws LoginTimeoutException, AuthorizationException, ClientRequestException {
 		if (pid == null) throw new IllegalArgumentException("projectId is null");
 		setCurrentProject(pid);
-		if (!getSnapShotFile(pid).exists()) {
+		if (!getSnapShotFile(pid).get().exists()) {
 			SnapShot snapshot = getSnapShot(pid);
 			createLocalSnapShot(snapshot.getOntology(), pid);
 		}
@@ -368,20 +368,20 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		}
 	}
 
-	private static File getSnapShotFile(@Nonnull ProjectId projectId) {
+	private static Optional<File> getSnapShotFile(@Nonnull ProjectId projectId) {
 		if (projectId == null) throw new IllegalArgumentException("projectId is null");
 		try {
 			Files.createDirectories(Paths.get(projectId.get()));
 		} catch (IOException e) {
 			logger.error("Unable to create snapshot directory for " + projectId + ": " + e);
-			return null;
+			return Optional.empty();
 		}
-		return new File(projectId.get() + File.separator + "history-snapshot");
+		return Optional.of(new File(projectId.get() + File.separator + "history-snapshot"));
 	}
 
 	private static Optional<String> getSnapshotChecksum(@Nonnull ProjectId projectId) {
 		if (projectId == null) throw new IllegalArgumentException("projectId is null");
-		Path path = Paths.get(getSnapShotFile(projectId).getAbsolutePath() + SNAPSHOT_CHECKSUM);
+		Path path = Paths.get(getSnapShotFile(projectId).get().getAbsolutePath() + SNAPSHOT_CHECKSUM);
 		try {
 			return Optional.of(new String(Files.readAllBytes(path), Charset.defaultCharset()));
 		} catch (IOException e) {
@@ -394,7 +394,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		try {
 			BinaryOWLOntologyDocumentSerializer serializer = new BinaryOWLOntologyDocumentSerializer();
 			OWLOntology ontIn = manIn.createOntology();
-			BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(getSnapShotFile(pid)));
+			BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(getSnapShotFile(pid).get()));
 			serializer.read(inputStream, new BinaryOWLOntologyBuildingHandler(ontIn), manIn.getOWLDataFactory());
 			return ontIn;
 		} catch (IOException | OWLOntologyCreationException e) {
@@ -447,7 +447,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		BufferedOutputStream outputStream = null;
 		try {
 			BinaryOWLOntologyDocumentSerializer serializer = new BinaryOWLOntologyDocumentSerializer();
-			outputStream = new BufferedOutputStream(new FileOutputStream(getSnapShotFile(projectId)));
+			outputStream = new BufferedOutputStream(new FileOutputStream(getSnapShotFile(projectId).get()));
 			serializer.write(new OWLOntologyWrapper(ont), new DataOutputStream(outputStream));
 		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
@@ -845,7 +845,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 
 	private void writeSnapshotChecksum(@Nonnull ProjectId projectId, String checksum) throws IOException {
 		if (projectId == null) throw new IllegalArgumentException("projectId is null");
-		File snapshotFile = getSnapShotFile(projectId);
+		File snapshotFile = getSnapShotFile(projectId).get();
 		OutputStream checksumStream = new FileOutputStream(snapshotFile.getAbsolutePath() + SNAPSHOT_CHECKSUM);
 		checksumStream.write(checksum.getBytes());
 	}
