@@ -575,6 +575,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	public void squashHistory(SnapShot snapshot, ProjectId projectId) throws ClientRequestException {
+		checkSnapshotChecksumPresent(projectId);
 		ByteArrayOutputStream b = new ByteArrayOutputStream();
 		try {
 			ObjectOutputStream oos = new ObjectOutputStream(b);
