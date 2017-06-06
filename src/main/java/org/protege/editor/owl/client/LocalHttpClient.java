@@ -1,5 +1,6 @@
 package org.protege.editor.owl.client;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import edu.stanford.protege.metaproject.ConfigurationManager;
@@ -16,10 +17,7 @@ import okhttp3.*;
 import org.apache.commons.codec.binary.Base64;
 import org.protege.editor.owl.client.api.Client;
 import org.protege.editor.owl.client.api.UserInfo;
-import org.protege.editor.owl.client.api.exception.AuthorizationException;
-import org.protege.editor.owl.client.api.exception.ClientRequestException;
-import org.protege.editor.owl.client.api.exception.LoginTimeoutException;
-import org.protege.editor.owl.client.api.exception.SynchronizationException;
+import org.protege.editor.owl.client.api.exception.*;
 import org.protege.editor.owl.client.event.ClientSessionChangeEvent;
 import org.protege.editor.owl.client.event.ClientSessionChangeEvent.EventCategory;
 import org.protege.editor.owl.client.event.ClientSessionListener;
@@ -54,6 +52,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipInputStream;
@@ -63,7 +62,7 @@ import static org.protege.editor.owl.server.http.ServerProperties.*;
 
 public class LocalHttpClient implements Client, ClientSessionListener {
 
-	public enum UserType { NON_ADMIN, ADMIN }
+	public enum UserType {NON_ADMIN, ADMIN}
 
 	private static final Logger logger = LoggerFactory.getLogger(LocalHttpClient.class);
 
@@ -81,20 +80,15 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	private UserId userId;
 	private UserInfo userInfo;
 
-	public void setProjectId(ProjectId projectId) {
-		this.projectId = projectId;
-	}
-
-	private ProjectId projectId;
-	private Project project;
-
 	private AuthToken authToken;
 
 	//private ServerConfiguration serverConfiguration;
 	private Config config = null;
-	
-	public Config getConfig() { return config; }
-	
+
+	public Config getConfig() {
+		return config;
+	}
+
 	private Serializer serl = new DefaultJsonSerializer();
 
 	private static LocalHttpClient currentHttpClient;
@@ -103,15 +97,15 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	 * The constructor
 	 */
 	public LocalHttpClient(String username, String password, String serverAddress)
-			throws LoginTimeoutException, AuthorizationException, ClientRequestException{
+		throws LoginTimeoutException, AuthorizationException, ClientRequestException {
 		httpClient = new OkHttpClient.Builder()
-				.writeTimeout(360, TimeUnit.SECONDS)
-				.readTimeout(360, TimeUnit.SECONDS)
-				.build();
+			.writeTimeout(360, TimeUnit.SECONDS)
+			.readTimeout(360, TimeUnit.SECONDS)
+			.build();
 		this.serverAddress = serverAddress;
 		login(username, password);
 		initConfig();
-		initAuthToken();		
+		initAuthToken();
 		LocalHttpClient.currentHttpClient = this;
 	}
 
@@ -122,7 +116,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	public ServerConfiguration getCurrentConfig() {
 		return config.getCurrentConfig();
 	}
-	
+
 	public UserType getClientType() {
 		int adminPort = config.getHost().getSecondaryPort().get().get();
 		int serverAddressPort = URI.create(serverAddress).getPort();
@@ -135,11 +129,11 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	private void login(String username, String password)
-			throws LoginTimeoutException, AuthorizationException, ClientRequestException {
+		throws LoginTimeoutException, AuthorizationException, ClientRequestException {
 		LoginCreds creds = new LoginCreds(username, password);
 		Response response = post(LOGIN,
-				RequestBody.create(JsonContentType, serl.write(creds, LoginCreds.class)),
-				false); // send the request to server
+			RequestBody.create(JsonContentType, serl.write(creds, LoginCreds.class)),
+			false); // send the request to server
 		userInfo = retrieveUserInfoFromServerResponse(response);
 		userId = ConfigurationManager.getFactory().getUserId(userInfo.getId());
 	}
@@ -155,7 +149,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	private UserInfo retrieveUserInfoFromServerResponse(Response response)
-			throws ClientRequestException {
+		throws ClientRequestException {
 		try {
 			InputStream is = response.body().byteStream();
 			HttpAuthResponse authResponse = (HttpAuthResponse) serl.parse(new InputStreamReader(is), HttpAuthResponse.class);
@@ -172,16 +166,9 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 
 	@Override
 	public void handleChange(ClientSessionChangeEvent event) {
-		if (event.equals(EventCategory.SWITCH_ONTOLOGY)) {
-			projectId = event.getSource().getActiveProject();
-		}
+		logger.info("ClientSessionChangeEvent: " + event);
 	}
 
-	
-
-	public Project getCurrentProject() {
-		return project;
-	}
 
 	@Override
 	public AuthToken getAuthToken() {
@@ -189,7 +176,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	public ServerDocument createProject(Project project, File font)
-			throws LoginTimeoutException, AuthorizationException, ClientRequestException {
+		throws LoginTimeoutException, AuthorizationException, ClientRequestException {
 		try {
 			ServerDocument sdoc = postProjectToServer(project);
 			postProjectSnapShotToServer(project, font); // send snapshot to server
@@ -202,11 +189,11 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	private ServerDocument postProjectToServer(Project project) throws IOException,
-			LoginTimeoutException, AuthorizationException, ClientRequestException {
+		LoginTimeoutException, AuthorizationException, ClientRequestException {
 		ByteArrayOutputStream b = writeRequestArgumentsIntoByteStream(project);
 		Response response = post(PROJECT,
-				RequestBody.create(ApplicationContentType, b.toByteArray()),
-				true); // send the request to server
+			RequestBody.create(ApplicationContentType, b.toByteArray()),
+			true); // send the request to server
 		return retrieveServerDocumentFromServerResponse(response);
 	}
 
@@ -224,7 +211,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	private ServerDocument retrieveServerDocumentFromServerResponse(Response response)
-			throws ClientRequestException {
+		throws ClientRequestException {
 		try {
 			ObjectInputStream ois = new ObjectInputStream(response.body().byteStream());
 			ServerDocument sdoc = (ServerDocument) ois.readObject();
@@ -240,16 +227,16 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	@Override
-	public void deleteProject(ProjectId projectId, boolean includeFile)
-			throws AuthorizationException, LoginTimeoutException, ClientRequestException {
+	public void deleteProject(@Nonnull ProjectId projectId, boolean includeFile)
+		throws AuthorizationException, LoginTimeoutException, ClientRequestException {
 		String requestUrl = PROJECT + "?projectid=" + projectId.get();
 		delete(requestUrl, true); // send request to server
 		initConfig();
 	}
 
 	@Override
-	public ServerDocument openProject(ProjectId projectId)
-			throws AuthorizationException, LoginTimeoutException, ClientRequestException {
+	public ServerDocument openProject(@Nonnull ProjectId projectId)
+		throws AuthorizationException, LoginTimeoutException, ClientRequestException {
 		if (getClientType() == UserType.ADMIN) { // admin clients cannot edit/browse ontologies
 			throw new ClientRequestException("Admin clients cannot open projects");
 		}
@@ -259,18 +246,25 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	@Override
-	public ChangeHistory commit(ProjectId projectId, CommitBundle commitBundle)
-			throws AuthorizationException, ClientRequestException {
+	public ChangeHistory commit(@Nonnull ProjectId projectId, CommitBundle commitBundle)
+		throws AuthorizationException, ClientRequestException {
+		checkSnapshotChecksumPresent(projectId);
 		try {
-			ByteArrayOutputStream b = writeRequestArgumentsIntoByteStream(projectId, commitBundle);
-			Response response = post(COMMIT,
-					RequestBody.create(ApplicationContentType, b.toByteArray()),
+			ByteArrayOutputStream b = writeRequestArgumentsIntoByteStream(commitBundle);
+			Response response = postWithProjectId(COMMIT,
+				RequestBody.create(ApplicationContentType, b.toByteArray()),
+				projectId,
 					true); // send request to server
 			return retrieveChangeHistoryFromServerResponse(response);
-		}
-		catch (IOException e) {
+		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
 			throw new ClientRequestException("Unable to send request to server (see error log for details)", e);
+		}
+	}
+
+	private void checkSnapshotChecksumPresent(@Nonnull ProjectId projectId) {
+		if (!getSnapshotChecksum(projectId).isPresent()) {
+			throw new IllegalArgumentException("Missing snapshot checksum for project " + projectId);
 		}
 	}
 
@@ -292,17 +286,16 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		}
 	}
 
-	private ByteArrayOutputStream writeRequestArgumentsIntoByteStream(ProjectId projectId,
+	private ByteArrayOutputStream writeRequestArgumentsIntoByteStream(
 			CommitBundle commitBundle) throws IOException {
 		ByteArrayOutputStream b = new ByteArrayOutputStream();
 		ObjectOutputStream os = new ObjectOutputStream(b);
-		os.writeObject(projectId);
 		os.writeObject(commitBundle);
 		return b;
 	}
 
 	private ChangeHistory retrieveChangeHistoryFromServerResponse(Response response)
-			throws ClientRequestException {
+		throws ClientRequestException {
 		try {
 			ObjectInputStream ois = new ObjectInputStream(response.body().byteStream());
 			ChangeHistory hist = (ChangeHistory) ois.readObject();
@@ -315,12 +308,11 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 				response.body().close();
 			}
 		}
-	}	
+	}
 
 	private List<String> retrieveCodesFromServerResponse(Response response) throws ClientRequestException {
 		try {
 			ObjectInputStream ois = new ObjectInputStream(response.body().byteStream());
-			@SuppressWarnings("unchecked")
 			List<String> codes = (List<String>) ois.readObject();
 			return codes;
 		} catch (IOException e) {
@@ -329,64 +321,68 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		} catch (ClassNotFoundException e) {
 			logger.error(e.getMessage(), e);
 			throw new ClientRequestException("Internal error, server sent wrong object back", e);
-			
+
 		} finally {
 			if (response != null) {
 				response.body().close();
 			}
 		}
-		
+
 	}
 
 	public VersionedOWLOntology buildVersionedOntology(ServerDocument sdoc, OWLOntologyManager owlManager,
-			@Nonnull ProjectId pid) throws LoginTimeoutException, AuthorizationException, ClientRequestException {
-		if (pid == null) throw new IllegalArgumentException();
+													   @Nonnull ProjectId pid)
+			throws LoginTimeoutException, AuthorizationException, ClientRequestException {
+		if (pid == null) throw new IllegalArgumentException("projectId is null");
 		setCurrentProject(pid);
-		if (!getSnapShotFile(pid).exists()) {
+		if (!getSnapShotFile(pid).get().exists()) {
 			SnapShot snapshot = getSnapShot(pid);
 			createLocalSnapShot(snapshot.getOntology(), pid);
 		}
 		OWLOntology targetOntology = loadSnapShot(owlManager, pid);
-		ChangeHistory remoteChangeHistory = getLatestChanges(sdoc, DocumentRevision.START_REVISION);
+		ChangeHistory remoteChangeHistory = getLatestChanges(sdoc, DocumentRevision.START_REVISION, pid);
 		ClientUtils.updateOntology(targetOntology, remoteChangeHistory, owlManager);
 		return new VersionedOWLOntologyImpl(sdoc, targetOntology, remoteChangeHistory);
 	}
 
-	private void setCurrentProject(ProjectId pid) throws ClientRequestException {
+	private void setCurrentProject(@Nonnull ProjectId pid) throws ClientRequestException {
+		if (pid == null) throw new IllegalArgumentException("projectId is null");
 		try {
-			projectId = pid;
 			config.setActiveProject(pid);
-			project = config.getCurrentConfig().getProject(pid);
+			config.getCurrentConfig().getProject(pid);
 		} catch (UnknownProjectIdException e) {
 			logger.error(e.getMessage());
 			throw new ClientRequestException("Client failed to get the project (see error log for details)", e);
 		}
 	}
 
-	private static File getSnapShotFile(@Nonnull ProjectId projectId) {
-		if (projectId == null) throw new IllegalArgumentException();
+	private static Optional<File> getSnapShotFile(@Nonnull ProjectId projectId) {
+		if (projectId == null) throw new IllegalArgumentException("projectId is null");
 		try {
 			Files.createDirectories(Paths.get(projectId.get()));
-		}
-		catch (IOException e){
+		} catch (IOException e) {
 			logger.error("Unable to create snapshot directory for " + projectId + ": " + e);
-			return null;
+			return Optional.empty();
 		}
-		return new File(projectId.get() + File.separator + "history-snapshot");
+		return Optional.of(new File(projectId.get() + File.separator + "history-snapshot"));
 	}
 
-	private static String getSnapshotChecksum(@Nonnull ProjectId projectId) throws IOException {
-		if (projectId == null) throw new IllegalArgumentException();
-		Path path = Paths.get(getSnapShotFile(projectId).getAbsolutePath() + SNAPSHOT_CHECKSUM);
-		return new String(Files.readAllBytes(path), Charset.defaultCharset());
+	private static Optional<String> getSnapshotChecksum(@Nonnull ProjectId projectId) {
+		if (projectId == null) throw new IllegalArgumentException("projectId is null");
+		Path path = Paths.get(getSnapShotFile(projectId).get().getAbsolutePath() + SNAPSHOT_CHECKSUM);
+		try {
+			return Optional.of(new String(Files.readAllBytes(path), Charset.defaultCharset()));
+		} catch (IOException e) {
+			return Optional.empty();
+		}
 	}
 
 	public OWLOntology loadSnapShot(OWLOntologyManager manIn, @Nonnull ProjectId pid) throws ClientRequestException {
-		if (pid == null) throw new IllegalArgumentException();
+		if (pid == null) throw new IllegalArgumentException("projectId is null");
 		try {
 			BinaryOWLOntologyDocumentSerializer serializer = new BinaryOWLOntologyDocumentSerializer();
 			OWLOntology ontIn = manIn.createOntology();
-			BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(getSnapShotFile(pid)));
+			BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(getSnapShotFile(pid).get()));
 			serializer.read(inputStream, new BinaryOWLOntologyBuildingHandler(ontIn), manIn.getOWLDataFactory());
 			return ontIn;
 		} catch (IOException | OWLOntologyCreationException e) {
@@ -396,7 +392,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	private void postProjectSnapShotToServer(Project project, File font) throws LoginTimeoutException,
-			AuthorizationException, ClientRequestException {
+		AuthorizationException, ClientRequestException {
 		Response response = null;
 		try {
 			OWLOntology ont;
@@ -409,18 +405,16 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 			ByteArrayOutputStream b = writeRequestArgumentsIntoByteStream(project.getId(), new SnapShot(ont));
 
 			response = post(PROJECT_SNAPSHOT,
-					RequestBody.create(ApplicationContentType, b.toByteArray()),
-					true); // send request to server
+				RequestBody.create(ApplicationContentType, b.toByteArray()),
+				true); // send request to server
 
 			ObjectInputStream ois = new ObjectInputStream(response.body().byteStream());
 			String snapshotChecksum = (String) ois.readObject();
 			writeSnapshotChecksum(project.getId(), snapshotChecksum);
-		}
-		catch (IOException | OWLOntologyCreationException | ClassNotFoundException e) {
+		} catch (IOException | OWLOntologyCreationException | ClassNotFoundException e) {
 			logger.error(e.getMessage(), e);
 			throw new ClientRequestException("Unable to send request to server (see error log for details)", e);
-		}
-		finally {
+		} finally {
 			if (response != null) {
 				response.body().close();
 			}
@@ -428,7 +422,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	private ByteArrayOutputStream writeRequestArgumentsIntoByteStream(ProjectId projectId, SnapShot ontologySnapshot)
-			throws IOException {
+		throws IOException {
 		ByteArrayOutputStream b = new ByteArrayOutputStream();
 		ObjectOutputStream os = new ObjectOutputStream(b);
 		os.writeObject(projectId);
@@ -437,11 +431,11 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	public void createLocalSnapShot(OWLOntology ont, @Nonnull ProjectId projectId) throws ClientRequestException {
-		if (projectId == null) throw new IllegalArgumentException();
+		if (projectId == null) throw new IllegalArgumentException("projectId is null");
 		BufferedOutputStream outputStream = null;
 		try {
 			BinaryOWLOntologyDocumentSerializer serializer = new BinaryOWLOntologyDocumentSerializer();
-			outputStream = new BufferedOutputStream(new FileOutputStream(getSnapShotFile(projectId)));
+			outputStream = new BufferedOutputStream(new FileOutputStream(getSnapShotFile(projectId).get()));
 			serializer.write(new OWLOntologyWrapper(ont), new DataOutputStream(outputStream));
 		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
@@ -457,19 +451,20 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		}
 	}
 
-	public SnapShot getSnapShot(ProjectId projectId) throws LoginTimeoutException, AuthorizationException,
-			ClientRequestException {
+	public SnapShot getSnapShot(@Nonnull ProjectId projectId) throws LoginTimeoutException, AuthorizationException,
+		ClientRequestException {
 		String requestUrl = PROJECT_SNAPSHOT + "?projectid=" + projectId.get();
 		Response response = get(requestUrl); // send request to server
-		return retrieveDocumentSnapshotFromServerResponse(response);
+		return retrieveDocumentSnapshotFromServerResponse(response, projectId);
 	}
 
-	private SnapShot retrieveDocumentSnapshotFromServerResponse(Response response)
-			throws ClientRequestException {
+	private SnapShot retrieveDocumentSnapshotFromServerResponse(Response response, @Nonnull ProjectId projectId)
+		throws ClientRequestException {
+		if (projectId == null) throw new IllegalArgumentException("projectId is null");
 		try {
 			ObjectInputStream ois = new ObjectInputStream(response.body().byteStream());
 			SnapShot snapshot = (SnapShot) ois.readObject();
-			String checksum = (String)ois.readObject();
+			String checksum = (String) ois.readObject();
 			writeSnapshotChecksum(projectId, checksum);
 			return snapshot;
 		} catch (IOException | ClassNotFoundException e) {
@@ -482,49 +477,50 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		}
 	}
 
-	public ChangeHistory getAllChanges(ServerDocument sdoc) throws LoginTimeoutException,
-			AuthorizationException, ClientRequestException {
+	public ChangeHistory getAllChanges(ServerDocument sdoc, @Nonnull ProjectId projectId) throws LoginTimeoutException,
+		AuthorizationException, ClientRequestException {
+		if (projectId == null) throw new IllegalArgumentException("projectId is null");
 		try {
 			HistoryFile historyFile = sdoc.getHistoryFile();
-			ByteArrayOutputStream b = writeRequestArgumentsIntoByteStream(projectId, historyFile);
-			Response response = post(ALL_CHANGES,
-					RequestBody.create(ApplicationContentType, b.toByteArray()),
-					true); // send request to server
+			ByteArrayOutputStream b = writeRequestArgumentsIntoByteStream(historyFile);
+			Response response = postWithProjectId(ALL_CHANGES,
+				RequestBody.create(ApplicationContentType, b.toByteArray()),
+				projectId,
+				true); // send request to server
 			return retrieveChangeHistoryFromServerResponse(response);
-		}
-		catch (IOException e) {
+		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
 			throw new ClientRequestException("Unable to send request to server (see error log for details)", e);
 		}
 	}
 
-	private ByteArrayOutputStream writeRequestArgumentsIntoByteStream(ProjectId projectId, HistoryFile historyFile)
-			throws IOException {
+	private ByteArrayOutputStream writeRequestArgumentsIntoByteStream(HistoryFile historyFile)
+		throws IOException {
 		ByteArrayOutputStream b = new ByteArrayOutputStream();
 		ObjectOutputStream os = new ObjectOutputStream(b);
-		os.writeObject(projectId);
 		os.writeObject(historyFile);
 		return b;
 	}
 
-	public DocumentRevision getRemoteHeadRevision(VersionedOWLOntology vont) throws
-			AuthorizationException, ClientRequestException {
+	public DocumentRevision getRemoteHeadRevision(VersionedOWLOntology vont, @Nonnull ProjectId projectId) throws
+		AuthorizationException, ClientRequestException {
+		if (projectId == null) throw new IllegalArgumentException("projectId is null");
 		try {
 			HistoryFile historyFile = vont.getServerDocument().getHistoryFile();
-			ByteArrayOutputStream b = writeRequestArgumentsIntoByteStream(projectId, historyFile);
-			Response response = post(HEAD,
-					RequestBody.create(ApplicationContentType, b.toByteArray()),
-					true); // send request to server
+			ByteArrayOutputStream b = writeRequestArgumentsIntoByteStream(historyFile);
+			Response response = postWithProjectId(HEAD,
+				RequestBody.create(ApplicationContentType, b.toByteArray()),
+				projectId,
+				true); // send request to server
 			return retrieveDocumentRevisionFromServerResponse(response);
-		}
-		catch (IOException e) {
+		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
 			throw new ClientRequestException("Unable to send request to server (see error log for details)", e);
 		}
 	}
 
 	private DocumentRevision retrieveDocumentRevisionFromServerResponse(Response response)
-			throws ClientRequestException {
+		throws ClientRequestException {
 		try {
 			ObjectInputStream ois = new ObjectInputStream(response.body().byteStream());
 			DocumentRevision remoteHead = (DocumentRevision) ois.readObject();
@@ -539,56 +535,58 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		}
 	}
 
-	public ChangeHistory getLatestChanges(VersionedOWLOntology vont) throws LoginTimeoutException,
-			AuthorizationException, ClientRequestException {
+	public ChangeHistory getLatestChanges(VersionedOWLOntology vont, @Nonnull ProjectId projectId)
+			throws AuthorizationException, ClientRequestException {
+		if (projectId == null) throw new IllegalArgumentException("projectId is null");
 		DocumentRevision start = vont.getChangeHistory().getHeadRevision();
-		return getLatestChanges(vont.getServerDocument(), start);
+		return getLatestChanges(vont.getServerDocument(), start, projectId);
 	}
 
-	public ChangeHistory getLatestChanges(ServerDocument sdoc, DocumentRevision start)
-			throws AuthorizationException, ClientRequestException {
+	public ChangeHistory getLatestChanges(ServerDocument sdoc, DocumentRevision start, @Nonnull ProjectId projectId)
+		throws AuthorizationException, ClientRequestException {
+		if (projectId == null) throw new IllegalArgumentException("projectId is null");
 		try {
 			HistoryFile historyFile = sdoc.getHistoryFile();
-			ByteArrayOutputStream b = writeRequestArgumentsIntoByteStream(projectId, start, historyFile);
-			Response response = post(LATEST_CHANGES,
-					RequestBody.create(ApplicationContentType, b.toByteArray()),
-					true); // send request to server
+			ByteArrayOutputStream b = writeRequestArgumentsIntoByteStream(start, historyFile);
+			Response response = postWithProjectId(LATEST_CHANGES,
+				RequestBody.create(ApplicationContentType, b.toByteArray()),
+				projectId,
+				true); // send request to server
 			return retrieveChangeHistoryFromServerResponse(response);
-		}
-		catch (IOException e) {
+		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
 			throw new ClientRequestException("Unable to send request to server (see error log for details)", e);
 		}
 	}
 
-	private ByteArrayOutputStream writeRequestArgumentsIntoByteStream(ProjectId projectId,
+	private ByteArrayOutputStream writeRequestArgumentsIntoByteStream(
 			DocumentRevision start, HistoryFile historyFile) throws IOException {
 		ByteArrayOutputStream b = new ByteArrayOutputStream();
 		ObjectOutputStream os = new ObjectOutputStream(b);
-		os.writeObject(projectId);
 		os.writeObject(historyFile);
 		os.writeObject(start);
 		return b;
 	}
 
-	public void squashHistory(SnapShot snapshot, ProjectId projectId) throws ClientRequestException {
+	public void squashHistory(SnapShot snapshot, @Nonnull ProjectId projectId) throws ClientRequestException {
+		if (projectId == null) throw new IllegalArgumentException("projectId is null");
+		checkSnapshotChecksumPresent(projectId);
 		ByteArrayOutputStream b = new ByteArrayOutputStream();
 		try {
 			ObjectOutputStream oos = new ObjectOutputStream(b);
-			oos.writeObject(projectId);
 			oos.writeObject(snapshot);
 
-			Response response = post(SQUASH,
-					RequestBody.create(ApplicationContentType, b.toByteArray()),
-					true);
+			Response response = postWithProjectId(SQUASH,
+				RequestBody.create(ApplicationContentType, b.toByteArray()),
+				projectId,
+				true);
 
 			ObjectInputStream ois = new ObjectInputStream(response.body().byteStream());
 			String snapshotChecksum = (String) ois.readObject();
-			writeSnapshotChecksum(project.getId(), snapshotChecksum);
+			writeSnapshotChecksum(projectId, snapshotChecksum);
 
 			createLocalSnapShot(snapshot.getOntology(), projectId);
-		}
-		catch (IOException | AuthorizationException | ClassNotFoundException e) {
+		} catch (IOException | AuthorizationException | ClassNotFoundException e) {
 			logger.error(e.getMessage(), e);
 			throw new ClientRequestException("Unable to send request to server (see error log for details)", e);
 		}
@@ -598,7 +596,6 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		return config.getRole(id);
 	}
 
-	
 
 	@Override
 	public UserInfo getUserInfo() {
@@ -611,27 +608,27 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	@Override
-	public List<Role> getActiveRoles() {
+	public List<Role> getActiveRoles(ProjectId projectId) {
 		List<Role> activeRoles = new ArrayList<>();
-		if (getRemoteProject().isPresent()) {
-			activeRoles = config.getRoles(userId, getRemoteProject().get(), GlobalPermissions.INCLUDED);
+		if (projectId != null) {
+			activeRoles = config.getRoles(userId, projectId, GlobalPermissions.INCLUDED);
 		}
 		return activeRoles;
 	}
 
 	@Override
-	public List<Operation> getActiveOperations() {
+	public List<Operation> getActiveOperations(ProjectId projectId) {
 		List<Operation> activeOperations = new ArrayList<>();
-		if (getRemoteProject().isPresent()) {
-			activeOperations = config.getOperations(userId, getRemoteProject().get());
+		if (projectId != null) {
+			activeOperations = config.getOperations(userId, projectId);
 		}
 		return activeOperations;
 	}
 
 	private Request.Builder postBuilder(String url, RequestBody body, boolean withCredential) {
 		Request.Builder builder = new Request.Builder()
-				.url(serverAddress + url)
-				.post(body);
+			.url(serverAddress + url)
+			.post(body);
 
 		if (withCredential) {
 			builder = builder.addHeader(authHeader, getAuthHeaderString());
@@ -639,35 +636,35 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		return builder;
 	}
 
-	private Response post(String url, RequestBody body, boolean withCredential)
+	private Response postWithProjectId(String url, RequestBody body, @Nonnull ProjectId projectId, boolean withCredential)
 			throws AuthorizationException, ClientRequestException {
+		if (projectId == null) {
+			throw new RuntimeException("POST projectId is null: " + url);
+		}
+		Optional<String> snapshotChecksum = getSnapshotChecksum(projectId);
+		if (!snapshotChecksum.isPresent()) {
+			throw new RuntimeException("POST snapshot checksum is missing");
+		}
+
 		Request.Builder builder = postBuilder(url, body, withCredential);
 
-		if(projectId != null) {
-			try {
-				String snapshotChecksum = getSnapshotChecksum(projectId);
-				builder.addHeader(ServerProperties.SNAPSHOT_CHECKSUM_HEADER, snapshotChecksum);
-			} catch (IOException e) {
-				// This is not always an error. Before login and project load projectId == null
-				logger.debug("Can not find snapshot checksum for ProjectId " + projectId);
-			}
-		}
+		builder.addHeader(ServerProperties.PROJECTID_HEADER, projectId.get());
+		builder.addHeader(ServerProperties.SNAPSHOT_CHECKSUM_HEADER, snapshotChecksum.get());
 
 		try {
 			Response response = httpClient.newCall(builder.build()).execute();
 
-			if(!response.isSuccessful() && projectId != null &&
-					response.code() == ServerProperties.HISTORY_SNAPSHOT_OUT_OF_DATE) {
+			if (!response.isSuccessful() && response.code() == ServerProperties.HISTORY_SNAPSHOT_OUT_OF_DATE) {
 				ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
 				ProgressDialog dlg = new ProgressDialog();
 
 				dlg.setMessage("History snapshot out of date. Fetching latest.");
-				service.submit(() -> {
+				final ListenableFuture<?> snapshotTask = service.submit(() -> {
 					try {
 						SnapShot snapshot = getSnapShot(projectId);
 						createLocalSnapShot(snapshot.getOntology(), projectId);
 					} catch (AuthorizationException | ClientRequestException e) {
-						logger.error(e.getMessage(), e);
+						throw new RuntimeException(e);
 					}
 					finally {
 						dlg.setVisible(false);
@@ -675,15 +672,33 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 				});
 				dlg.setVisible(true);
 
-				String snapshotChecksum = getSnapshotChecksum(projectId);
+				String newChecksum = getSnapshotChecksum(projectId).get();
 
 				builder = postBuilder(url, body, withCredential)
-						.addHeader(ServerProperties.SNAPSHOT_CHECKSUM_HEADER, snapshotChecksum);
+						.addHeader(ServerProperties.PROJECTID_HEADER, projectId.get())
+						.addHeader(ServerProperties.SNAPSHOT_CHECKSUM_HEADER, newChecksum);
 
 				response = httpClient.newCall(builder.build()).execute();
 			}
 
-			if(!response.isSuccessful()) {
+			if (!response.isSuccessful()) {
+				throwRequestExceptions(response);
+			}
+			return response;
+		} catch (IOException e) {
+			logger.error(e.getMessage(), e);
+			throw new ClientRequestException("Unable to send request to server (see error log for details)", e);
+		}
+	}
+
+	private Response post(String url, RequestBody body, boolean withCredential)
+		throws AuthorizationException, ClientRequestException {
+		Request.Builder builder = postBuilder(url, body, withCredential);
+
+		try {
+			Response response = httpClient.newCall(builder.build()).execute();
+
+			if (!response.isSuccessful()) {
 				throwRequestExceptions(response);
 			}
 			return response;
@@ -694,19 +709,19 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	private Response delete(String url, boolean withCredential) throws LoginTimeoutException,
-			AuthorizationException, ClientRequestException  {
+		AuthorizationException, ClientRequestException {
 		Request request;
 		if (withCredential) {
 			request = new Request.Builder()
-					.url(serverAddress + url)
-					.addHeader(authHeader, getAuthHeaderString())
-					.delete()
-					.build();
+				.url(serverAddress + url)
+				.addHeader(authHeader, getAuthHeaderString())
+				.delete()
+				.build();
 		} else {
 			request = new Request.Builder()
-					.url(serverAddress + url)
-					.delete()
-					.build();
+				.url(serverAddress + url)
+				.delete()
+				.build();
 		}
 		try {
 			Response response = httpClient.newCall(request).execute();
@@ -721,12 +736,12 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	private Response get(String url) throws LoginTimeoutException, AuthorizationException,
-			ClientRequestException {
+		ClientRequestException {
 		Request request = new Request.Builder()
-				.url(serverAddress + url)
-				.addHeader(authHeader, getAuthHeaderString())
-				.get()
-				.build();
+			.url(serverAddress + url)
+			.addHeader(authHeader, getAuthHeaderString())
+			.get()
+			.build();
 		try {
 			Response response = httpClient.newCall(request).execute();
 			if (!response.isSuccessful()) {
@@ -745,7 +760,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	private ServerConfiguration getServerConfig() throws LoginTimeoutException, AuthorizationException,
-			ClientRequestException {
+		ClientRequestException {
 		Response response = get(METAPROJECT);
 		try {
 			return ConfigurationManager.getConfigurationLoader().loadConfiguration(new InputStreamReader(response.body().byteStream()));
@@ -759,27 +774,28 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		}
 	}
 
-	public List<String> getCodes(int no) throws LoginTimeoutException, AuthorizationException, ClientRequestException {
+	public List<String> getCodes(int no, @Nonnull ProjectId projectId) throws
+		LoginTimeoutException, AuthorizationException, ClientRequestException {
 		return retrieveCodesFromServerResponse(get(GEN_CODE + "?count=" + no + "&projectid=" + projectId.get()));
-	}	
- 
-	
+	}
+
+
 	public void saveConfig() throws LoginTimeoutException, AuthorizationException, ClientRequestException {
 		post(METAPROJECT,
-				RequestBody.create(JsonContentType, serl.write(config.getCurrentConfig(), ServerConfiguration.class)),
-				true); // send request to server
+			RequestBody.create(JsonContentType, serl.write(config.getCurrentConfig(), ServerConfiguration.class)),
+			true); // send request to server
 		sleep(1000); // give the server some time to reboot
 		initConfig();
 	}
-	
+
 	public void pauseServer() throws LoginTimeoutException, AuthorizationException, ClientRequestException {
-		get(SERVER_PAUSE);		
-		
+		get(SERVER_PAUSE);
+
 	}
-	
+
 	public void resumeServer() throws LoginTimeoutException, AuthorizationException, ClientRequestException {
-		get(SERVER_RESUME);		
-		
+		get(SERVER_RESUME);
+
 	}
 
 	private static void sleep(int period) {
@@ -790,26 +806,25 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		}
 	}
 
-	public void putEVSHistory(String code, String name, String operation, String reference)
-			throws LoginTimeoutException, AuthorizationException, ClientRequestException {
+	public void putEVSHistory(String code, String name, String operation, String reference, @Nonnull ProjectId projectId)
+		throws LoginTimeoutException, AuthorizationException, ClientRequestException {
 		try {
 			History evsHistory = new History(userId.get(), code, name, operation, reference);
 			ByteArrayOutputStream b = writeRequestArgumentsIntoByteStream(evsHistory);
 			post(EVS_REC + "?projectid=" + projectId.get(),
-					RequestBody.create(ApplicationContentType, b.toByteArray()),
-					true); // send request to server
+				RequestBody.create(ApplicationContentType, b.toByteArray()),
+				true); // send request to server
 		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
 			throw new ClientRequestException("Failed to send data (see error log for details)", e);
 		}
 	}
-	
-	public void genConceptHistory()
-			throws LoginTimeoutException, AuthorizationException, ClientRequestException {
+
+	public void genConceptHistory(@Nonnull ProjectId projectId)
+		throws LoginTimeoutException, AuthorizationException, ClientRequestException {
+		if (projectId == null) throw new IllegalArgumentException("projectId cannot be null");
 		try {
-			
 			get(GEN_CON_HIST + "?projectid=" + projectId.get());
-			
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 			throw new ClientRequestException("Failed to successfuly generate concept history.", e);
@@ -817,14 +832,14 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	private void writeSnapshotChecksum(@Nonnull ProjectId projectId, String checksum) throws IOException {
-		if (projectId == null) throw new IllegalArgumentException();
-		File snapshotFile = getSnapShotFile(projectId);
+		if (projectId == null) throw new IllegalArgumentException("projectId is null");
+		File snapshotFile = getSnapShotFile(projectId).get();
 		OutputStream checksumStream = new FileOutputStream(snapshotFile.getAbsolutePath() + SNAPSHOT_CHECKSUM);
 		checksumStream.write(checksum.getBytes());
 	}
 
 	private ByteArrayOutputStream writeRequestArgumentsIntoByteStream(History hist)
-			throws IOException {
+		throws IOException {
 		ByteArrayOutputStream b = new ByteArrayOutputStream();
 		ObjectOutputStream os = new ObjectOutputStream(b);
 		os.writeObject(hist);
@@ -832,15 +847,14 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	private void throwRequestExceptions(Response response)
-			throws LoginTimeoutException, AuthorizationException, ClientRequestException {
+		throws LoginTimeoutException, AuthorizationException, ClientRequestException {
 		String originalMessage = response.header("Error-Message");
 		if (originalMessage == null) {
 			originalMessage = String.format("Unknown server error (code: %d)", response.code());
 		}
 		if (response.code() == StatusCodes.UNAUTHORIZED) {
 			throw new AuthorizationException(originalMessage);
-		}
-		else if (response.code() == StatusCodes.CONFLICT) {
+		} else if (response.code() == StatusCodes.CONFLICT) {
 			throw new SynchronizationException(originalMessage);
 		}
 		/*
@@ -848,68 +862,57 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		 */
 		else if (response.code() == 440) {
 			throw new LoginTimeoutException(originalMessage);
-		}
-		else if (response.code() == StatusCodes.SERVICE_UNAVAILABLE) {
-			throw new ClientRequestException(originalMessage);
-		}
-		else {
+		} else if (response.code() == StatusCodes.SERVICE_UNAVAILABLE) {
+			throw new ServiceUnavailableException(originalMessage);
+		} else {
 			String msg = String.format("%s (contact server admin for further assistance)", originalMessage);
 			throw new ClientRequestException(msg);
 		}
 	}
 
-
-	
-
-	
-
-	public Optional<ProjectId> getRemoteProject() {
-		return Optional.ofNullable(projectId);
-	}
-	
 	public boolean codeIsLessThan(String lower, String upper) {
-	
-	String p = config.getCurrentConfig().getProperty(CODEGEN_PREFIX);
-	String s = config.getCurrentConfig().getProperty(CODEGEN_SUFFIX);
-	String d = config.getCurrentConfig().getProperty(CODEGEN_DELIMETER);
-	
-	int lowNum = 0;
-	int upNum = 0;
-	
-	if (d != null) {
-		String[] lowSplit = lower.split(d);
-		String[] upSplit = upper.split(d);
-		lowNum = Integer.parseInt(lowSplit[1]);
-		upNum = Integer.parseInt(upSplit[1]);
-		
-	} else {
-		String lowRem = lower.substring(p.length());
-		String upRem = upper.substring(p.length());
-		if (s != null) {
-			lowNum = Integer.parseInt(lowRem.substring(0, lowRem.length() - s.length()));
-			upNum = Integer.parseInt(upRem.substring(0, upRem.length() - s.length()));
+
+		String p = config.getCurrentConfig().getProperty(CODEGEN_PREFIX);
+		String s = config.getCurrentConfig().getProperty(CODEGEN_SUFFIX);
+		String d = config.getCurrentConfig().getProperty(CODEGEN_DELIMETER);
+
+		int lowNum = 0;
+		int upNum = 0;
+
+		if (d != null) {
+			String[] lowSplit = lower.split(d);
+			String[] upSplit = upper.split(d);
+			lowNum = Integer.parseInt(lowSplit[1]);
+			upNum = Integer.parseInt(upSplit[1]);
+
 		} else {
-			lowNum = Integer.parseInt(lowRem);
-			upNum = Integer.parseInt(upRem);
-			
+			String lowRem = lower.substring(p.length());
+			String upRem = upper.substring(p.length());
+			if (s != null) {
+				lowNum = Integer.parseInt(lowRem.substring(0, lowRem.length() - s.length()));
+				upNum = Integer.parseInt(upRem.substring(0, upRem.length() - s.length()));
+			} else {
+				lowNum = Integer.parseInt(lowRem);
+				upNum = Integer.parseInt(upRem);
+
+			}
 		}
+		return lowNum < upNum;
+
+
 	}
-	return lowNum < upNum;
-	
-	
-	}
-	
-	public boolean isWorkFlowManager() {
+
+	public boolean isWorkFlowManager(ProjectId projectId) {
 		try {
 			Role wfm = getRole(new RoleIdImpl("mp-project-manager"));
-			return getActiveRoles().contains(wfm);
+			return getActiveRoles(projectId).contains(wfm);
 		} catch (ClientRequestException e) {
 			e.printStackTrace();
 			return false;
 		}
-    }
-  
-    public ServerStatus getServerStatus() throws ClientRequestException {
+	}
+
+	public ServerStatus getServerStatus() throws ClientRequestException {
 		Response response = null;
 		try {
 			response = get(SERVER_STATUS);
@@ -924,9 +927,5 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 				response.body().close();
 			}
 		}
-      
-	public void setProjectId(ProjectId projectId) {
-		this.projectId = projectId;
 	}
-
 }
