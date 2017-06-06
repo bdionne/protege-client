@@ -467,11 +467,12 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		ClientRequestException {
 		String requestUrl = PROJECT_SNAPSHOT + "?projectid=" + projectId.get();
 		Response response = get(requestUrl); // send request to server
-		return retrieveDocumentSnapshotFromServerResponse(response);
+		return retrieveDocumentSnapshotFromServerResponse(response, projectId);
 	}
 
-	private SnapShot retrieveDocumentSnapshotFromServerResponse(Response response)
+	private SnapShot retrieveDocumentSnapshotFromServerResponse(Response response, @Nonnull ProjectId projectId)
 		throws ClientRequestException {
+		if (projectId == null) throw new IllegalArgumentException("projectId is null");
 		try {
 			ObjectInputStream ois = new ObjectInputStream(response.body().byteStream());
 			SnapShot snapshot = (SnapShot) ois.readObject();
