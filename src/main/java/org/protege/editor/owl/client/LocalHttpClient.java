@@ -16,10 +16,7 @@ import okhttp3.*;
 import org.apache.commons.codec.binary.Base64;
 import org.protege.editor.owl.client.api.Client;
 import org.protege.editor.owl.client.api.UserInfo;
-import org.protege.editor.owl.client.api.exception.AuthorizationException;
-import org.protege.editor.owl.client.api.exception.ClientRequestException;
-import org.protege.editor.owl.client.api.exception.LoginTimeoutException;
-import org.protege.editor.owl.client.api.exception.SynchronizationException;
+import org.protege.editor.owl.client.api.exception.*;
 import org.protege.editor.owl.client.event.ClientSessionChangeEvent;
 import org.protege.editor.owl.client.event.ClientSessionChangeEvent.EventCategory;
 import org.protege.editor.owl.client.event.ClientSessionListener;
@@ -543,7 +540,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	public ChangeHistory getLatestChanges(VersionedOWLOntology vont, @Nonnull ProjectId projectId)
-			throws LoginTimeoutException, AuthorizationException, ClientRequestException {
+			throws AuthorizationException, ClientRequestException {
 		if (projectId == null) throw new IllegalArgumentException("projectId is null");
 		DocumentRevision start = vont.getChangeHistory().getHeadRevision();
 		return getLatestChanges(vont.getServerDocument(), start, projectId);
@@ -871,7 +868,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		else if (response.code() == 440) {
 			throw new LoginTimeoutException(originalMessage);
 		} else if (response.code() == StatusCodes.SERVICE_UNAVAILABLE) {
-			throw new ClientRequestException(originalMessage);
+			throw new ServiceUnavailableException(originalMessage);
 		} else {
 			String msg = String.format("%s (contact server admin for further assistance)", originalMessage);
 			throw new ClientRequestException(msg);
