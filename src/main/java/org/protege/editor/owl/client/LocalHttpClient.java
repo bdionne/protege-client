@@ -832,7 +832,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		throws LoginTimeoutException, AuthorizationException, ClientRequestException {
 		if (projectId == null) throw new IllegalArgumentException("projectId cannot be null");
 		try {
-			get(GEN_CON_HIST + "?projectid=" + projectId);
+			get(GEN_CON_HIST + "?projectid=" + projectId.get());
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 			throw new ClientRequestException("Failed to successfuly generate concept history.", e);
