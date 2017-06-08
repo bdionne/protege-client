@@ -670,12 +670,16 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 						createLocalSnapShot(snapshot.getOntology(), projectId);
 					} catch (AuthorizationException | ClientRequestException e) {
 						throw new RuntimeException(e);
-					} finally {
-						dlg.setVisible(false);
 					}
 				});
 				dlg.setVisible(true);
-				snapshotTask.get();
+				try {
+					snapshotTask.get();
+				} catch (ExecutionException  | InterruptedException e) {
+					throw new RuntimeException(e);
+				} finally {
+					dlg.setVisible(false);
+				}
 
 				String newChecksum = getSnapshotChecksum(projectId).get();
 
@@ -693,8 +697,6 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
 			throw new ClientRequestException("Unable to send request to server (see error log for details)", e);
-		} catch (InterruptedException | ExecutionException e) {
-			throw new RuntimeException(e);
 		}
 	}
 
