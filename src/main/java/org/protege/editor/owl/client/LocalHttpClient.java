@@ -666,15 +666,11 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 					} catch (AuthorizationException | ClientRequestException e) {
 						throw new RuntimeException(e);
 					}
+					finally {
+						dlg.setVisible(false);
+					}
 				});
 				dlg.setVisible(true);
-				try {
-					snapshotTask.get();
-				} catch (ExecutionException  | InterruptedException e) {
-					throw new RuntimeException(e);
-				} finally {
-					dlg.setVisible(false);
-				}
 
 				String newChecksum = getSnapshotChecksum(projectId).get();
 
