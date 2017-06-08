@@ -1,5 +1,6 @@
 package org.protege.editor.owl.client;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import edu.stanford.protege.metaproject.ConfigurationManager;
@@ -663,7 +664,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 				ProgressDialog dlg = new ProgressDialog();
 
 				dlg.setMessage("History snapshot out of date. Fetching latest.");
-				service.submit(() -> {
+				final ListenableFuture<?> snapshotTask = service.submit(() -> {
 					try {
 						SnapShot snapshot = getSnapShot(projectId);
 						createLocalSnapShot(snapshot.getOntology(), projectId);
@@ -672,8 +673,9 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 					} finally {
 						dlg.setVisible(false);
 					}
-				}).get();
+				});
 				dlg.setVisible(true);
+				snapshotTask.get();
 
 				String newChecksum = getSnapshotChecksum(projectId).get();
 
