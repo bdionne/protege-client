@@ -80,8 +80,6 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	private UserId userId;
 	private UserInfo userInfo;
 
-	private ProjectId projectId;
-
 	private AuthToken authToken;
 
 	//private ServerConfiguration serverConfiguration;
@@ -168,9 +166,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 
 	@Override
 	public void handleChange(ClientSessionChangeEvent event) {
-		if (event.equals(EventCategory.SWITCH_ONTOLOGY)) {
-			projectId = event.getSource().getActiveProject();
-		}
+		logger.info("ClientSessionChangeEvent: " + event);
 	}
 
 
@@ -352,7 +348,6 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	private void setCurrentProject(@Nonnull ProjectId pid) throws ClientRequestException {
 		if (pid == null) throw new IllegalArgumentException("projectId is null");
 		try {
-			projectId = pid;
 			config.setActiveProject(pid);
 			config.getCurrentConfig().getProject(pid);
 		} catch (UnknownProjectIdException e) {
