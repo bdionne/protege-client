@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.protege.editor.owl.client.api.ClientRequests;
-import org.protege.editor.owl.client.api.PolicyMediator;
 import org.protege.editor.owl.client.api.exception.AuthorizationException;
 import org.protege.editor.owl.client.api.exception.ClientRequestException;
 import org.protege.editor.owl.client.api.exception.LoginTimeoutException;
@@ -37,7 +36,7 @@ import edu.stanford.protege.metaproject.api.exception.UnknownUserIdException;
 import edu.stanford.protege.metaproject.impl.ConfigurationBuilder;
 import edu.stanford.protege.metaproject.impl.Operations;
 
-public class Config implements PolicyMediator, ClientRequests {
+public class Config implements ClientRequests {
 	
 	private static final Logger logger = LoggerFactory.getLogger(Config.class);
 	
@@ -64,72 +63,58 @@ public class Config implements PolicyMediator, ClientRequests {
 		userId = user;
 	}
 	
-	@Override
 	public boolean canCreateUser() {
 		return queryAdminPolicy(userId, Operations.ADD_USER.getId());
 	}
 
-	@Override
 	public boolean canDeleteUser() {
 		return queryAdminPolicy(userId, Operations.REMOVE_USER.getId());
 	}
 
-	@Override
 	public boolean canUpdateUser() {
 		return queryAdminPolicy(userId, Operations.MODIFY_USER.getId());
 	}
 
-	@Override
 	public boolean canCreateProject() {
 		return queryAdminPolicy(userId, Operations.ADD_PROJECT.getId());
 	}
 
-	@Override
 	public boolean canCreateRole() {
 		return queryAdminPolicy(userId, Operations.ADD_ROLE.getId());
 	}
 
-	@Override
 	public boolean canDeleteRole() {
 		return queryAdminPolicy(userId, Operations.REMOVE_ROLE.getId());
 	}
 
-	@Override
 	public boolean canUpdateRole() {
 		return queryAdminPolicy(userId, Operations.MODIFY_ROLE.getId());
 	}
 
-	@Override
 	public boolean canCreateOperation() {
 		return queryAdminPolicy(userId, Operations.ADD_OPERATION.getId());
 	}
 
-	@Override
 	public boolean canDeleteOperation() {
 		return queryAdminPolicy(userId, Operations.REMOVE_OPERATION.getId());
 	}
 
-	@Override
 	public boolean canUpdateOperation() {
 		return queryAdminPolicy(userId, Operations.MODIFY_OPERATION.getId());
 	}
 
-	@Override
 	public boolean canAssignRole() {
 		return queryAdminPolicy(userId, Operations.ASSIGN_ROLE.getId());
 	}
 
-	@Override
 	public boolean canRetractRole() {
 		return queryAdminPolicy(userId, Operations.RETRACT_ROLE.getId());
 	}
 
-	@Override
 	public boolean canUpdateServerConfig() {
 		return queryAdminPolicy(userId, Operations.MODIFY_SERVER_SETTINGS.getId());
 	}
 	
-	@Override
 	public boolean canPerformProjectOperation(OperationId operationId) {
 		if (!getRemoteProject().isPresent()) {
 			return false;
