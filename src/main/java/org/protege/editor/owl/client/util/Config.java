@@ -36,6 +36,8 @@ import edu.stanford.protege.metaproject.api.exception.UnknownUserIdException;
 import edu.stanford.protege.metaproject.impl.ConfigurationBuilder;
 import edu.stanford.protege.metaproject.impl.Operations;
 
+import javax.annotation.Nonnull;
+
 public class Config implements ClientRequests {
 	
 	private static final Logger logger = LoggerFactory.getLogger(Config.class);
@@ -47,17 +49,7 @@ public class Config implements ClientRequests {
 	}
 	
 	private UserId userId = null;
-	private ProjectId projectId = null;
-	
-	public void setActiveProject(ProjectId projectId) {
-		this.projectId = projectId;
-	}
-	
-	public Optional<ProjectId> getRemoteProject() {
-		return Optional.ofNullable(projectId);
-	}
-	
-	
+
 	public Config(ServerConfiguration cfg, UserId user) {
 		config = cfg;
 		userId = user;
@@ -115,11 +107,9 @@ public class Config implements ClientRequests {
 		return queryAdminPolicy(userId, Operations.MODIFY_SERVER_SETTINGS.getId());
 	}
 	
-	public boolean canPerformProjectOperation(OperationId operationId) {
-		if (!getRemoteProject().isPresent()) {
-			return false;
-		}
-		return queryProjectPolicy(userId, getRemoteProject().get(), operationId);
+	public boolean canPerformProjectOperation(OperationId operationId, @Nonnull ProjectId projectId) {
+		if (projectId == null) throw new IllegalArgumentException("projectId can't be null");
+		return queryProjectPolicy(userId, projectId, operationId);
 	}
 	
 	@Override
