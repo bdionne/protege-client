@@ -170,11 +170,9 @@ public class ClientSession extends OWLEditorKitHook {
     }
     
     public void reset() {
-    	activeClient = null;
         closeOpenVersionedOntologies();
         unregisterAllProjects();
         unregisterAllVersionOntologies();
-        
     }
 
     private void closeOpenVersionedOntologies() {
