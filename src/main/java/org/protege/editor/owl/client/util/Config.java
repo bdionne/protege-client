@@ -1,6 +1,5 @@
 package org.protege.editor.owl.client.util;
 
-import java.io.File;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,7 +36,6 @@ import edu.stanford.protege.metaproject.api.exception.UnknownRoleIdException;
 import edu.stanford.protege.metaproject.api.exception.UnknownUserIdException;
 import edu.stanford.protege.metaproject.impl.ConfigurationBuilder;
 import edu.stanford.protege.metaproject.impl.Operations;
-import edu.stanford.protege.metaproject.impl.RoleIdImpl;
 
 public class Config implements PolicyMediator, ClientRequests {
 	
@@ -87,21 +85,6 @@ public class Config implements PolicyMediator, ClientRequests {
 	}
 
 	@Override
-	public boolean canDeleteProject() {
-		return queryAdminPolicy(userId, Operations.REMOVE_PROJECT.getId());
-	}
-
-	@Override
-	public boolean canUpdateProject() {
-		return queryAdminPolicy(userId, Operations.MODIFY_PROJECT.getId());
-	}
-
-	@Override
-	public boolean canOpenProject() {
-		return queryAdminPolicy(userId, Operations.OPEN_PROJECT.getId());
-	}
-
-	@Override
 	public boolean canCreateRole() {
 		return queryAdminPolicy(userId, Operations.ADD_ROLE.getId());
 	}
@@ -142,12 +125,6 @@ public class Config implements PolicyMediator, ClientRequests {
 	}
 
 	@Override
-	public boolean canStopServer() {
-		return queryAdminPolicy(userId, Operations.STOP_SERVER.getId());
-	}
-
-	
-	@Override
 	public boolean canUpdateServerConfig() {
 		return queryAdminPolicy(userId, Operations.MODIFY_SERVER_SETTINGS.getId());
 	}
@@ -158,11 +135,6 @@ public class Config implements PolicyMediator, ClientRequests {
 			return false;
 		}
 		return queryProjectPolicy(userId, getRemoteProject().get(), operationId);
-	}
-	
-	@Override
-	public boolean canPerformAdminOperation(OperationId operationId) {
-		return queryAdminPolicy(userId, operationId);
 	}
 	
 	@Override

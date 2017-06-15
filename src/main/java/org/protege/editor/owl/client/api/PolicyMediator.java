@@ -62,31 +62,6 @@ public interface PolicyMediator {
     boolean canCreateProject();
 
     /**
-     * Checks if the user has the permission to remove an existing project from
-     * the server.
-     *
-     * @return Returns <code>true</code> if the user has the permission, or
-     *         <code>false</code> otherwise.
-     */
-    boolean canDeleteProject();
-
-    /**
-     * Checks if the user has the permission to update an existing project.
-     *
-     * @return Returns <code>true</code> if the user has the permission, or
-     *         <code>false</code> otherwise.
-     */
-    boolean canUpdateProject();
-
-    /**
-     * Checks if the user has the permission to open a project from the server.
-     *
-     * @return Returns <code>true</code> if the user has the permission, or
-     *         <code>false</code> otherwise.
-     */
-    boolean canOpenProject();
-
-    /**
      * Checks if the user has the permission to create a new user's role to the
      * server.
      *
@@ -159,14 +134,6 @@ public interface PolicyMediator {
     // All methods related to server operations
     // ------------------------------------------------
 
-    /**
-     * Checks if the user has the permission to stop the server.
-     *
-     * @return Returns <code>true</code> if the user has the permission, or
-     *         <code>false</code> otherwise.
-     */
-    boolean canStopServer();
-
     // ------------------------------------------------
     // A method to serve other checking operation query
     // ------------------------------------------------
@@ -182,15 +149,4 @@ public interface PolicyMediator {
     boolean canPerformProjectOperation(OperationId operationId); 
     
     boolean queryProjectPolicy(UserId userId, ProjectId id, OperationId id2);
-    
-
-    /**
-     * Checks if the user has the permission to perform an admin-related operation.
-     *
-     * @param operationId
-     *            The target operation for the query
-     * @return Returns <code>true</code> if the user has the permission, or
-     *         <code>false</code> otherwise.
-     */
-    boolean canPerformAdminOperation(OperationId operationId);
 }
