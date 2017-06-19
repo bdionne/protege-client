@@ -661,12 +661,16 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		try {
 			Response response = httpClient.newCall(builder.build()).execute();
 
-			if (!response.isSuccessful() && response.code() == ServerProperties.HISTORY_SNAPSHOT_OUT_OF_DATE) {
+			if (response.code() == ServerProperties.HISTORY_SNAPSHOT_OUT_OF_DATE) {
 				ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
 				ProgressDialog dlg = new ProgressDialog();
 
+				// If we are forcing a restart then does it make sense to download the new snapshot on a
+				// checksum mismatch. Seems like this only provides opportunity to perform operations on
+				// the old ontology (incorrect).
+				//
 				dlg.setMessage("History snapshot out of date. Fetching latest.");
-				final ListenableFuture<?> snapshotTask = service.submit(() -> {
+				service.submit(() -> {
 					try {
 						SnapShot snapshot = getSnapShot(projectId);
 						createLocalSnapShot(snapshot.getOntology(), projectId);
@@ -678,14 +682,6 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 					}
 				});
 				dlg.setVisible(true);
-
-				String newChecksum = getSnapshotChecksum(projectId).get();
-
-				builder = postBuilder(url, body, withCredential)
-						.addHeader(ServerProperties.PROJECTID_HEADER, projectId.get())
-						.addHeader(ServerProperties.SNAPSHOT_CHECKSUM_HEADER, newChecksum);
-
-				response = httpClient.newCall(builder.build()).execute();
 			}
 
 			if (!response.isSuccessful()) {
@@ -854,7 +850,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	private void throwRequestExceptions(Response response)
-		throws LoginTimeoutException, AuthorizationException, ClientRequestException {
+		throws AuthorizationException, ClientRequestException {
 		String originalMessage = response.header("Error-Message");
 		if (originalMessage == null) {
 			originalMessage = String.format("Unknown server error (code: %d)", response.code());
@@ -863,6 +859,8 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 			throw new AuthorizationException(originalMessage);
 		} else if (response.code() == StatusCodes.CONFLICT) {
 			throw new SynchronizationException(originalMessage);
+		} else if (response.code() == ServerProperties.HISTORY_SNAPSHOT_OUT_OF_DATE) {
+			throw new SynchronizationException("History Snapshot out of date. Please restart Protege");
 		}
 		/*
 		 * 440 Login Timeout. Reference: https://support.microsoft.com/en-us/kb/941201

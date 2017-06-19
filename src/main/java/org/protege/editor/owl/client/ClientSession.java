@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import javax.annotation.Nullable;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 
@@ -154,6 +155,7 @@ public class ClientSession extends OWLEditorKitHook {
         return projectMap.get(ontologyId);
     }
 
+    @Nullable
     public VersionedOWLOntology getActiveVersionOntology() {
         OWLOntologyID ontologyId = getEditorKit().getOWLModelManager().getActiveOntology().getOntologyID();
         return ontologyMap.get(ontologyId);

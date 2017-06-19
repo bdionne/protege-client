@@ -44,8 +44,6 @@ public class CommitAction extends AbstractClientAction implements ClientSessionL
 
     private static final long serialVersionUID = 4601012273632698091L;
 
-    private Optional<VersionedOWLOntology> activeVersionOntology = Optional.empty();
-
     private List<OWLOntologyChange> localChanges = new ArrayList<>();
 
     private SessionRecorder sessionRecorder;
@@ -54,8 +52,9 @@ public class CommitAction extends AbstractClientAction implements ClientSessionL
         @Override
         public void stateChanged(HistoryManager source) {
             OWLOntology activeOntology = getOWLEditorKit().getOWLModelManager().getActiveOntology();
-            if (activeVersionOntology.isPresent()) {
-                ChangeHistory baseline = activeVersionOntology.get().getChangeHistory();
+            VersionedOWLOntology versionedOWLOntology = getClientSession().getActiveVersionOntology();
+            if (null != versionedOWLOntology) {
+                ChangeHistory baseline = versionedOWLOntology.getChangeHistory();
                 localChanges = ClientUtils.getUncommittedChanges(source, activeOntology, baseline);
                 setEnabled(!localChanges.isEmpty());
             }
@@ -84,8 +83,7 @@ public class CommitAction extends AbstractClientAction implements ClientSessionL
              * This method does not handle if version ontology is present because the menu item will
              * only be enabled if checkUncommittedChanges(...) listener senses changes in the ontology.
              */
-            activeVersionOntology = Optional.ofNullable(event.getSource().getActiveVersionOntology());
-            if (!activeVersionOntology.isPresent()) {
+            if (null != event.getSource().getActiveVersionOntology()) {
                 setEnabled(false);
             }
         }
@@ -98,7 +96,7 @@ public class CommitAction extends AbstractClientAction implements ClientSessionL
         if (option == JOptionPane.OK_OPTION) {
             String comment = commitPanel.getTextArea().getText().trim();
             if (!comment.isEmpty()) {
-                performCommit(activeVersionOntology.get(), comment);
+                performCommit(getClientSession().getActiveVersionOntology(), comment);
             }
         }
     }
@@ -149,7 +147,7 @@ public class CommitAction extends AbstractClientAction implements ClientSessionL
     }
 
     private void recommit(String comment) {
-        performCommit(activeVersionOntology.get(), comment);
+        performCommit(getClientSession().getActiveVersionOntology(), comment);
     }
 
     private class DoCommit implements Callable<ChangeHistory> {
