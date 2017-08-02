@@ -34,8 +34,6 @@ public class ShowHistoryAction extends AbstractClientAction implements ClientSes
 
     private static final long serialVersionUID = -7628375950917155764L;
 
-    private Optional<VersionedOWLOntology> activeVersionOntology = Optional.empty();
-
     @Override
     public void initialise() throws Exception {
         super.initialise();
@@ -51,8 +49,7 @@ public class ShowHistoryAction extends AbstractClientAction implements ClientSes
     @Override
     public void handleChange(ClientSessionChangeEvent event) {
         if (event.hasCategory(EventCategory.SWITCH_ONTOLOGY)) {
-            activeVersionOntology = Optional.ofNullable(event.getSource().getActiveVersionOntology());
-            setEnabled(activeVersionOntology.isPresent());
+            setEnabled(null != event.getSource().getActiveVersionOntology());
         }
     }
 
@@ -84,9 +81,9 @@ public class ShowHistoryAction extends AbstractClientAction implements ClientSes
         openShowHistoryDialog();
     }
 
-    private JDialog createDialog() throws LoginTimeoutException, AuthorizationException, ClientRequestException {
+    private JDialog createDialog() throws AuthorizationException, ClientRequestException {
         final JDialog dialog = new JDialog(null, "Browse Change History", Dialog.ModalityType.MODELESS);
-        ChangeHistoryPanel changeHistoryPanel = new ChangeHistoryPanel(activeVersionOntology.get(), getOWLEditorKit());
+        ChangeHistoryPanel changeHistoryPanel = new ChangeHistoryPanel(getOWLEditorKit());
         changeHistoryPanel.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "CLOSE_DIALOG");
         changeHistoryPanel.getActionMap().put("CLOSE_DIALOG", new AbstractAction()
         {

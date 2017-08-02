@@ -58,25 +58,21 @@ public class ChangeHistoryPanel extends JPanel {
     private static final long serialVersionUID = -372532962143290188L;
 
     private OWLEditorKit editorKit;
-    private OWLOntology ontology;
-    private VersionedOWLOntology vont;
 
     private JTable changeListTable;
     private ChangeListTableModel changeListTableModel;
 
-    public ChangeHistoryPanel(VersionedOWLOntology vont, OWLEditorKit editorKit)
+    public ChangeHistoryPanel(OWLEditorKit editorKit)
             throws LoginTimeoutException, AuthorizationException, ClientRequestException {
-        this.vont = vont;
         this.editorKit = editorKit;
-        this.ontology = editorKit.getOWLModelManager().getActiveOntology();
         initUI();
     }
 
     private void initUI() throws LoginTimeoutException, AuthorizationException, ClientRequestException {
         String shortOntologyName = "";
-        OWLOntologyID ontologyId = ontology.getOntologyID();
+        OWLOntologyID ontologyId = editorKit.getOWLModelManager().getActiveOntology().getOntologyID();
         if (!ontologyId.isAnonymous()) {
-            shortOntologyName = ontology.getOntologyID().getOntologyIRI().get().getRemainder().get();
+            shortOntologyName = ontologyId.getOntologyIRI().get().getRemainder().get();
         }
         if (shortOntologyName.isEmpty()) {
             shortOntologyName = ontologyId.toString();
@@ -114,12 +110,14 @@ public class ChangeHistoryPanel extends JPanel {
 
     private JComponent getHistoryComponent() throws LoginTimeoutException, AuthorizationException, ClientRequestException {
         ProjectId projectId = ClientSession.getInstance(editorKit).getActiveProject();
+        VersionedOWLOntology vont = ClientSession.getInstance(editorKit).getActiveVersionOntology();
         ChangeHistory remoteChanges = LocalHttpClient.current_user().getAllChanges(vont.getServerDocument(), projectId);
         HistoryTableModel model = new HistoryTableModel(remoteChanges);
         final JTable table = new JTable(model);
         table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
             @Override
             public void valueChanged(ListSelectionEvent listSelectionEvent) {
+                OWLOntology ontology = editorKit.getModelManager().getActiveOntology();
                 List<OWLOntologyChange> changesToDisplay = new ArrayList<OWLOntologyChange>();
                 DocumentRevision baseRevision = remoteChanges.getBaseRevision();
                 for (int row : table.getSelectedRows()) {
