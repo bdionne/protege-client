@@ -197,7 +197,7 @@ public class UserLoginPanel extends JPanel implements VerifiedInputEditor {
         LocalHttpClient client = new LocalHttpClient(username, password, serverAddress);
         clientSession.setActiveClient(client);
         clientSession.addListener(client);
-        
+
         return client.getAuthToken();
     }
 
