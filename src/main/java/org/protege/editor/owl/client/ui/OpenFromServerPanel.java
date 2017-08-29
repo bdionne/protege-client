@@ -11,6 +11,7 @@ import org.protege.editor.owl.client.api.Client;
 import org.protege.editor.owl.client.api.OpenProjectResult;
 import org.protege.editor.owl.client.api.exception.LoginTimeoutException;
 import org.protege.editor.owl.client.api.exception.OWLClientException;
+import org.protege.editor.owl.model.OWLWorkspace;
 import org.protege.editor.owl.server.util.SnapShot;
 import org.protege.editor.owl.server.versioning.api.ServerDocument;
 import org.protege.editor.owl.server.versioning.api.VersionedOWLOntology;
@@ -170,7 +171,11 @@ public class OpenFromServerPanel extends JPanel {
             SessionRecorder.getInstance(this.editorKit).startRecording();
             
             clientSession.setActiveProject(pid, vont);
-            
+
+            boolean isWorkflowManager = httpClient.isWorkFlowManager(pid);
+            OWLWorkspace workspace = editorKit.getWorkspace();
+            workspace.enablePelletRestart = isWorkflowManager;
+
             // update index with possibly new changes from other modelers
             List<OWLOntologyChange> changes = new ArrayList<OWLOntologyChange>();
             
