@@ -174,7 +174,7 @@ public class OpenFromServerPanel extends JPanel {
 
             boolean isWorkflowManager = httpClient.isWorkFlowManager(pid);
             OWLWorkspace workspace = editorKit.getWorkspace();
-            workspace.enablePelletRestart = isWorkflowManager;
+            workspace.enableReasonerRestart = isWorkflowManager;
 
             // update index with possibly new changes from other modelers
             List<OWLOntologyChange> changes = new ArrayList<OWLOntologyChange>();
