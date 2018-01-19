@@ -82,8 +82,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	private UserInfo userInfo;
 
 	private AuthToken authToken;
-
-	//private ServerConfiguration serverConfiguration;
+	
 	private Config config = null;
 
 	public Config getConfig() {
@@ -103,7 +102,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 				.writeTimeout(360, TimeUnit.SECONDS)
 				.readTimeout(360, TimeUnit.SECONDS)
 				.build();
-		// Not all callers are caeful enough to pass the protocol here. So we add a default (safe) one
+		// Not all callers are careful enough to pass the protocol here. So we add a default (safe) one
 		URI serverUri = URI.create(serverAddress);
 		if (Strings.isNullOrEmpty(serverUri.getScheme())) {
 			serverAddress = "https://" + serverAddress;
