@@ -43,6 +43,9 @@ public class OpenFromServerPanel extends JPanel {
 
     private JTable tblRemoteProjects;
     private ServerTableModel remoteProjectModel;
+    
+    private JProgressBar progressBar;
+    private JDialog dialog;
 
     public OpenFromServerPanel(ClientSession clientSession, OWLEditorKit editorKit) {
         this.clientSession = clientSession;
@@ -139,7 +142,39 @@ public class OpenFromServerPanel extends JPanel {
         @Override
         public void actionPerformed(ActionEvent e) {
             int row = tblRemoteProjects.getSelectedRow();
-            openOntologyDocument(row);
+            
+            progressBar = new JProgressBar();
+            progressBar.setPreferredSize(new Dimension(500, 50));
+            
+            
+            Window parentWindow = SwingUtilities.windowForComponent(tblRemoteProjects);
+            dialog = new JDialog(parentWindow);
+            dialog.setLocationRelativeTo(tblRemoteProjects);
+            
+            dialog.add(progressBar);
+            dialog.pack();
+            dialog.setTitle("Opening project...");
+           
+            class LoadDBWorker extends SwingWorker<String, Void> {
+               protected String doInBackground() {
+            	   //progressBar.setIndeterminate(true);
+            	   progressBar.setMinimum(0);
+            	   progressBar.setMaximum(100);
+            	   progressBar.setVisible(true);
+                   
+                   dialog.setVisible(true);
+                   
+                   openOntologyDocument(row);
+            	   return "Done.";
+               }
+            
+               protected void done() {
+            	   progressBar.setVisible(false);
+                   dialog.setVisible(false);            	   
+               }
+            }
+            
+            new LoadDBWorker().execute();
         }
     }
 
@@ -148,13 +183,22 @@ public class OpenFromServerPanel extends JPanel {
         Object pobj = remoteProjectModel.getValueAt(row, 0);
         try {
             LocalHttpClient httpClient = (LocalHttpClient) clientSession.getActiveClient();
+            
+            dialog.setTitle("Opening project on server...");
+            Thread.sleep(1000);
             OpenProjectResult openProjectResult = httpClient.openProject(pid);
             ServerDocument serverDocument = openProjectResult.serverDocument;
 
+            progressBar.setValue(10);            
+            dialog.setTitle("Checking Snapshot checksum....");
+            Thread.sleep(1000);
             Optional<String> clientChecksum = httpClient.getSnapshotChecksum(pid);
             if (clientChecksum.isPresent() &&
                 openProjectResult.snapshotChecksum.isPresent() &&
-                !clientChecksum.get().equals(openProjectResult.snapshotChecksum.get())) {
+                !clientChecksum.get().equals(openProjectResult.snapshotChecksum.get())) {            	
+            	progressBar.setValue(20);
+            	dialog.setTitle("Retrieving new snapshot....");
+            	Thread.sleep(1000);
                 SnapShot snapshot = httpClient.getSnapShot(pid);
                 httpClient.createLocalSnapShot(snapshot.getOntology(), pid);
             }
@@ -167,8 +211,15 @@ public class OpenFromServerPanel extends JPanel {
             }
             
             SessionRecorder.getInstance(this.editorKit).stopRecording();
+            progressBar.setValue(30);
+            dialog.setTitle("Building versioned ontology...");
+            Thread.sleep(1000);
             VersionedOWLOntology vont = httpClient.buildVersionedOntology(serverDocument, owlManager, pid);
             SessionRecorder.getInstance(this.editorKit).startRecording();
+            
+            progressBar.setValue(80);
+            dialog.setTitle("Updating menus and components...."); 
+            Thread.sleep(1000);
             
             clientSession.setActiveProject(pid, vont);
 
@@ -179,13 +230,25 @@ public class OpenFromServerPanel extends JPanel {
             // update index with possibly new changes from other modelers
             List<OWLOntologyChange> changes = new ArrayList<OWLOntologyChange>();
             
+            progressBar.setValue(90);
+            dialog.setTitle("Updating search indices...");
+            Thread.sleep(1000);
             for (List<OWLOntologyChange> c : vont.getChangeHistory().getRevisions().values()) {
             	for (OWLOntologyChange oc : c) {
             		changes.add(oc);
             	}            	            	
             }
             
+          
+            
+            
             editorKit.getSearchManager().updateIndex(changes);
+            
+            progressBar.setValue(100);
+            dialog.setTitle("Operations complete...");
+            Thread.sleep(1000);
+            
+            
             
             closeDialog();
         }
