@@ -35,11 +35,13 @@ public class TabViewableChecker implements TabViewable {
 		wf_man_tabs.add("Revision History");
 		wf_man_tabs.add("Annotation Properties");
 		wf_man_tabs.add("Entities");
+		wf_man_tabs.add("Individuals");
 		wf_man_tabs.add("Active Ontology");
 		wf_man_tabs.add("Object Properties");
 		wf_man_tabs.add("Classification results");
 		wf_man_tabs.add("Superclass hierarchy (inferred)");
 		wf_man_tabs.add("Superclass hierarchy");
+		wf_man_tabs.add("Individuals by class");
 		wf_man_tabs.add("Inference Results");
 		
 		// currently modelers can see all the same tabs, but only in read only mode
@@ -50,6 +52,7 @@ public class TabViewableChecker implements TabViewable {
 		wf_mod_tabs.add("Revision History");
 		wf_mod_tabs.add("Annotation Properties");
 		wf_mod_tabs.add("Entities");
+		wf_mod_tabs.add("Individuals");
 		wf_mod_tabs.add("Active Ontology");
 		wf_mod_tabs.add("Object Properties");
 		wf_mod_tabs.add("Classification results");

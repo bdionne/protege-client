@@ -99,8 +99,8 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	public LocalHttpClient(String username, String password, String serverAddress)
 		throws LoginTimeoutException, AuthorizationException, ClientRequestException {
 		httpClient = new OkHttpClient.Builder()
-				.writeTimeout(360, TimeUnit.SECONDS)
-				.readTimeout(360, TimeUnit.SECONDS)
+				.writeTimeout(1800, TimeUnit.SECONDS)
+				.readTimeout(1800, TimeUnit.SECONDS)
 				.build();
 		// Not all callers are careful enough to pass the protocol here. So we add a default (safe) one
 		URI serverUri = URI.create(serverAddress);
