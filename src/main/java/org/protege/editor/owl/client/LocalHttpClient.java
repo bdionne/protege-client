@@ -298,6 +298,23 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		os.writeObject(commitBundle);
 		return b;
 	}
+	
+	private List<History> retrieveEVSHistoryFromServerResponse(Response response)
+		throws ClientRequestException {
+			try {
+				ObjectInputStream ois = new ObjectInputStream(response.body().byteStream());
+				@SuppressWarnings("unchecked")
+				List<History> evs_hist = (List<History>) ois.readObject();
+				return evs_hist;
+			} catch (IOException | ClassNotFoundException e) {
+				logger.error(e.getMessage(), e);
+				throw new ClientRequestException("Failed to read data from server (see error log for details)", e);
+			} finally {
+				if (response != null) {
+					response.body().close();
+				}
+			}
+	}
 
 	private ChangeHistory retrieveChangeHistoryFromServerResponse(Response response)
 		throws ClientRequestException {
@@ -821,6 +838,18 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
 			throw new ClientRequestException("Failed to send data (see error log for details)", e);
+		}
+	}
+	
+	public List<History> getEVSHistory(@Nonnull ProjectId projectId)
+			throws LoginTimeoutException, AuthorizationException, ClientRequestException {
+		try {
+			String requestUrl = EVS_HIST + "?projectid=" + projectId.get();
+			Response response = get(requestUrl);
+			return this.retrieveEVSHistoryFromServerResponse(response);
+		} catch (Exception e) {
+			logger.error(e.getMessage(), e);
+			throw new ClientRequestException("Failed to fetch EVS history (see error log for details)", e);
 		}
 	}
 
