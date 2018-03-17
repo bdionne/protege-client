@@ -44,6 +44,7 @@ public class TabViewableChecker implements TabViewable {
 		wf_man_tabs.add("Individuals by class");
 		wf_man_tabs.add("Inference Results");
 		wf_man_tabs.add("SPARQL Query");
+		wf_man_tabs.add("EVS History");
 		
 		// currently modelers can see all the same tabs, but only in read only mode
 		
@@ -61,6 +62,7 @@ public class TabViewableChecker implements TabViewable {
 		wf_mod_tabs.add("Superclass hierarchy");
 		wf_mod_tabs.add("Inference Results");
 		wf_mod_tabs.add("SPARQL Query");
+		wf_mod_tabs.add("EVS History");
 		
 		admin_tabs.add("Server Administration");
 		req_admin_tabs.add("Server Administration");
