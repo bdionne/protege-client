@@ -843,14 +843,24 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	
 	public List<History> getEVSHistory(@Nonnull ProjectId projectId)
 			throws LoginTimeoutException, AuthorizationException, ClientRequestException {
+		
+		return getEVSHistory(new History(), projectId);
+		
+	}
+	
+	public List<History> getEVSHistory(History query, @Nonnull ProjectId projectId)
+			throws LoginTimeoutException, AuthorizationException, ClientRequestException {
 		try {
-			String requestUrl = EVS_HIST + "?projectid=" + projectId.get();
-			Response response = get(requestUrl);
+			ByteArrayOutputStream b = writeRequestArgumentsIntoByteStream(query);
+			Response response = post(EVS_HIST + "?projectid=" + projectId.get(),
+				RequestBody.create(ApplicationContentType, b.toByteArray()),
+				true); // send request to server
 			return this.retrieveEVSHistoryFromServerResponse(response);
-		} catch (Exception e) {
+		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
-			throw new ClientRequestException("Failed to fetch EVS history (see error log for details)", e);
+			throw new ClientRequestException("Failed to send data (see error log for details)", e);
 		}
+		
 	}
 
 	public void genConceptHistory(@Nonnull ProjectId projectId)
