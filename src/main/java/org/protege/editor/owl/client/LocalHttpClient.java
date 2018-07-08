@@ -351,6 +351,25 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		}
 
 	}
+	
+	private boolean checkHistoryCreateServerResponse(Response response) throws ClientRequestException {
+		try {
+			ObjectInputStream ois = new ObjectInputStream(response.body().byteStream());
+			return (boolean) ois.readObject();
+		} catch (IOException e) {
+			logger.error(e.getMessage(), e);
+			throw new ClientRequestException("Failed to receive data (see error log for details)", e);
+		} catch (ClassNotFoundException e) {
+			logger.error(e.getMessage(), e);
+			throw new ClientRequestException("Internal error, server sent wrong object back", e);
+
+		} finally {
+			if (response != null) {
+				response.body().close();
+			}
+		}
+
+	}
 
 	public VersionedOWLOntology buildVersionedOntology(ServerDocument sdoc, OWLOntologyManager owlManager,
 													   @Nonnull ProjectId pid)
@@ -840,6 +859,12 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 			throw new ClientRequestException("Failed to send data (see error log for details)", e);
 		}
 	}
+	
+	public boolean checkEvsHistoryCreate(String code, @Nonnull ProjectId projectId)
+			throws LoginTimeoutException, AuthorizationException, ClientRequestException {
+			return checkHistoryCreateServerResponse(get(EVS_CHECK_CREATE + "?projectid=" + projectId.get()
+			+ "&code=" + code));
+		}
 	
 	public List<History> getEVSHistory(@Nonnull ProjectId projectId)
 			throws LoginTimeoutException, AuthorizationException, ClientRequestException {
