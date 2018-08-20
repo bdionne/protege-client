@@ -150,8 +150,13 @@ public class ClientSession extends OWLEditorKitHook {
     }
 
     public ProjectId getActiveProject() {
-        OWLOntologyID ontologyId = getEditorKit().getOWLModelManager().getActiveOntology().getOntologyID();
-        return projectMap.get(ontologyId);
+    	OWLOntology oont = getEditorKit().getOWLModelManager().getActiveOntology();
+    	if (oont != null) {
+    		OWLOntologyID ontologyId = oont.getOntologyID();
+    		return projectMap.get(ontologyId);
+    	} else {
+    		return null;
+    	}
     }
 
     public VersionedOWLOntology getActiveVersionOntology() {
