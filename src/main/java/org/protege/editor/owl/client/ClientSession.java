@@ -2,6 +2,7 @@ package org.protege.editor.owl.client;
 
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -31,7 +32,7 @@ import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyID;
 
-import com.google.common.base.Optional;
+//import com.google.common.base.Optional;
 
 import edu.stanford.protege.metaproject.api.ProjectId;
 
@@ -221,7 +222,7 @@ public class ClientSession extends OWLEditorKitHook {
                 return Optional.of(ont);
             }
         }
-        return Optional.absent();
+        return Optional.empty();
     }
 
     @Override
