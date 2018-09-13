@@ -80,6 +80,8 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 
 	private UserId userId;
 	private UserInfo userInfo;
+	
+	private UserType loginType = UserType.NON_ADMIN;
 
 	private AuthToken authToken;
 	
@@ -96,7 +98,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	/**
 	 * The constructor
 	 */
-	public LocalHttpClient(String username, String password, String serverAddress)
+	public LocalHttpClient(String username, String password, String serverAddress, boolean admin)
 		throws LoginTimeoutException, AuthorizationException, ClientRequestException {
 		httpClient = new OkHttpClient.Builder()
 				.writeTimeout(1800, TimeUnit.SECONDS)
@@ -108,7 +110,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 			serverAddress = "https://" + serverAddress;
 		}
 		this.serverAddress = serverAddress;
-		login(username, password);
+		login(username, password, admin);
 		initConfig();
 		initAuthToken();
 		LocalHttpClient.currentHttpClient = this;
@@ -123,9 +125,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 	}
 
 	public UserType getClientType() {
-		int adminPort = config.getHost().getSecondaryPort().get().get();
-		int serverAddressPort = URI.create(serverAddress).getPort();
-		return (adminPort == serverAddressPort) ? UserType.ADMIN : UserType.NON_ADMIN;
+		return loginType;
 	}
 
 	public void initConfig() throws LoginTimeoutException, AuthorizationException, ClientRequestException {
@@ -133,14 +133,22 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		config = new Config(serverConfiguration, userId);
 	}
 
-	private void login(String username, String password)
+	private void login(String username, String password, boolean admin)
 		throws LoginTimeoutException, AuthorizationException, ClientRequestException {
 		LoginCreds creds = new LoginCreds(username, password);
-		Response response = post(LOGIN,
+		String endPoint = LOGIN;
+		if (admin) {
+			endPoint = ADMIN_LOGIN;
+			
+		}
+		Response response = post(endPoint,
 			RequestBody.create(JsonContentType, serl.write(creds, LoginCreds.class)),
 			false); // send the request to server
 		userInfo = retrieveUserInfoFromServerResponse(response);
 		userId = ConfigurationManager.getFactory().getUserId(userInfo.getId());
+		if (admin) {
+			loginType = UserType.ADMIN;
+		}
 	}
 
 	private void initAuthToken() {
