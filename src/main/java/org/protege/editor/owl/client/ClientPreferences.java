@@ -21,6 +21,8 @@ public class ClientPreferences {
     private static final String SERVER_LOCATIONS = "SERVER_LOCATIONS";
 
     private static final String LAST_SERVER_LOCATION = "LAST_SERVER_LOCATION";
+    
+    private static final String PREF_TAB_NAMES = "PREFERRED_TAB_NAMES";
 
     public static synchronized ClientPreferences getInstance() {
         if (instance == null) {
@@ -61,6 +63,16 @@ public class ClientPreferences {
         prefs.putString(LAST_SERVER_LOCATION, lastServerLocation);
     }
 
+    public List<String> getPreferredTabNames() {
+    	Preferences prefs = getPreferences();
+    	return prefs.getStringList(PREF_TAB_NAMES, new ArrayList<String>());
+    }
+    
+    public void setPreferedTabNames(List<String> prefTabNames) {
+    	Preferences prefs = getPreferences();
+    	prefs.putStringList(PREF_TAB_NAMES, prefTabNames);
+    }
+    
     protected static Preferences getPreferences() {
         return PreferencesManager.getInstance().getApplicationPreferences(CLIENT_PREFERENCES);
     }

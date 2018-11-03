@@ -6,6 +6,9 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 import edu.stanford.protege.metaproject.api.ProjectId;
+
+import org.protege.editor.core.prefs.Preferences;
+import org.protege.editor.core.prefs.PreferencesManager;
 import org.protege.editor.core.ui.view.ViewComponentPlugin;
 import org.protege.editor.core.ui.workspace.TabViewable;
 import org.protege.editor.core.ui.workspace.WorkspaceTabPlugin;
@@ -67,9 +70,15 @@ public class TabViewableChecker implements TabViewable {
 		admin_tabs.add("Server Administration");
 		req_admin_tabs.add("Server Administration");
 		
-		req_editing_tabs.add("NCI Edit Tab");
-		req_editing_tabs.add("Lucene Search Tab");
-		
+		List<String> pref_tab_names = ClientPreferences.getInstance().getPreferredTabNames();
+		if (pref_tab_names.size() <= 0) {
+			req_editing_tabs.add("NCI Edit Tab");
+			req_editing_tabs.add("Lucene Search Tab");
+		} else {
+			for (String pref_tab_name : pref_tab_names) {
+				req_editing_tabs.add(pref_tab_name);
+			}
+		}
 	}
 	
 	public TabViewableChecker(ClientSession clientSession, Client c) {
