@@ -149,7 +149,7 @@ public class UpdateAction extends AbstractClientAction implements ClientSessionL
         }
 
         @Override
-        public List<OWLOntologyChange> call() throws SynchronizationException, ServiceUnavailableException{
+        public List<OWLOntologyChange> call() throws Exception{
             List<OWLOntologyChange> incomingChanges = new ArrayList<>();
             if (!isUpdated()) {
                 List<OWLOntologyChange> localChanges = getLatestChangesFromClient();
@@ -178,19 +178,20 @@ public class UpdateAction extends AbstractClientAction implements ClientSessionL
             adjustImports(updates);
         }
 
-        private boolean isUpdated() throws ServiceUnavailableException {
+        private boolean isUpdated() throws Exception {
             try {
                 ProjectId projectId = getClientSession().getActiveProject();
                 DocumentRevision remoteHead = LocalHttpClient.current_user().getRemoteHeadRevision(vont, projectId);
                 DocumentRevision localHead = vont.getHeadRevision();
                 return localHead.sameAs(remoteHead);
             }
-            catch (ServiceUnavailableException e) {
-                throw e;
-            }
+            //catch (ServiceUnavailableException e) {
+                //throw e;
+            //}
             catch (Exception e) {
-                showErrorDialog("Update error", "Error while fetching the remote head revision", e);
-                return false;
+            	throw e;
+                //showErrorDialog("Update error", "Error while fetching the remote head revision", e);
+                //return false;
             }
         }
 

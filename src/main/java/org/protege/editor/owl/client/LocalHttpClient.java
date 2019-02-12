@@ -390,6 +390,7 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 		}
 		OWLOntology targetOntology = loadSnapShot(owlManager, pid);
 		ChangeHistory remoteChangeHistory = getLatestChanges(sdoc, DocumentRevision.START_REVISION, pid);
+		logger.info("Loaded ontology, now updating from server");
 		ClientUtils.updateOntology(targetOntology, remoteChangeHistory, owlManager);
 		return new VersionedOWLOntologyImpl(sdoc, targetOntology, remoteChangeHistory);
 	}
@@ -703,6 +704,9 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 			Response response = httpClient.newCall(builder.build()).execute();
 
 			if (!response.isSuccessful() && response.code() == ServerProperties.HISTORY_SNAPSHOT_OUT_OF_DATE) {
+				
+				/**
+				
 				ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
 				ProgressDialog dlg = new ProgressDialog();
 
@@ -727,6 +731,9 @@ public class LocalHttpClient implements Client, ClientSessionListener {
 						.addHeader(ServerProperties.SNAPSHOT_CHECKSUM_HEADER, newChecksum);
 
 				response = httpClient.newCall(builder.build()).execute();
+				**/
+				throw new ClientRequestException("Snapshot out of sync with server, please logout and login");
+				
 			}
 
 			if (!response.isSuccessful()) {

@@ -14,6 +14,7 @@ import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenuItem;
 
 import edu.stanford.protege.metaproject.api.ProjectId;
+
 import org.protege.editor.owl.client.LocalHttpClient;
 import org.protege.editor.owl.client.api.exception.ServiceUnavailableException;
 import org.protege.editor.owl.client.api.exception.SynchronizationException;
@@ -45,6 +46,8 @@ import org.semanticweb.owlapi.model.OWLOntologyChange;
 import org.semanticweb.owlapi.model.OWLOntologyLoaderConfiguration;
 //import org.semanticweb.owlapi.model.OWLOntologyLoaderConfiguration.MissingOntologyHeaderStrategy;
 import org.semanticweb.owlapi.model.UnloadableImportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Josef Hardi <johardi@stanford.edu> <br>
@@ -54,6 +57,8 @@ import org.semanticweb.owlapi.model.UnloadableImportException;
 public class EnableAutoUpdateAction extends AbstractClientAction implements ClientSessionListener {
 
     private static final long serialVersionUID = 1098490684799516207L;
+    
+    private static final Logger log = LoggerFactory.getLogger(EnableAutoUpdateAction.class);
 
     private Optional<VersionedOWLOntology> activeVersionOntology = Optional.empty();
 
@@ -155,7 +160,7 @@ public class EnableAutoUpdateAction extends AbstractClientAction implements Clie
     	@Override
     	public void run() {
     		try {
-    			System.out.println("Checking for updates");
+    			log.info("Checking for updates");
     			if (!isUpdated()) {
     				List<OWLOntologyChange> localChanges = getLatestChangesFromClient();
     				ChangeHistory remoteChangeHistory = getLatestChangesFromServer();
@@ -205,8 +210,8 @@ public class EnableAutoUpdateAction extends AbstractClientAction implements Clie
                 return true;
             }
             catch (Exception e) {
-                showErrorDialog("Update error", "Error while fetching the remote head revision", e);
-                return false;
+                showErrorDialog("Update error", "Error while fetching the remote head revision\n" + e.getMessage(), e);
+                return true;
             }
         }
 

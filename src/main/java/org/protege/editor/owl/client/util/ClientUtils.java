@@ -96,9 +96,7 @@ public class ClientUtils {
 
     public static void updateOntology(OWLOntology placeholder, ChangeHistory changeHistory, OWLOntologyManager manager) {
     	
-    	System.out.println("Loaded ontology, now updating from server");
-
-        List<OWLOntologyChange> changes = ChangeHistoryUtils.getOntologyChanges(changeHistory, placeholder);
+    	List<OWLOntologyChange> changes = ChangeHistoryUtils.getOntologyChanges(changeHistory, placeholder);
         
         manager.applyChanges(changes);
        
