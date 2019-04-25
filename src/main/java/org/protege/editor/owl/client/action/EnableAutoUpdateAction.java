@@ -14,6 +14,7 @@ import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenuItem;
 
 import edu.stanford.protege.metaproject.api.ProjectId;
+import uk.ac.manchester.cs.owl.owlapi.OWLOntologyManagerImpl;
 
 import org.protege.editor.owl.client.LocalHttpClient;
 import org.protege.editor.owl.client.api.exception.ServiceUnavailableException;
@@ -160,6 +161,14 @@ public class EnableAutoUpdateAction extends AbstractClientAction implements Clie
     	@Override
     	public void run() {
     		try {
+    			OWLOntologyManagerImpl imp = (OWLOntologyManagerImpl) modMan.getOWLOntologyManager();
+    			
+    			if (!imp.broadcastChanges.get()) {
+    				return;
+    			}
+    			if (modMan.getExplanationManager().getIsRunning()) {
+    				return;
+    			}
     			log.info("Checking for updates");
     			if (!isUpdated()) {
     				List<OWLOntologyChange> localChanges = getLatestChangesFromClient();
