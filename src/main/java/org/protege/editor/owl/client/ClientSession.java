@@ -72,7 +72,7 @@ public class ClientSession extends OWLEditorKitHook {
         getEditorKit().getOWLModelManager().addListener(changeActiveProject);        
     }
 
-    private void fireChangeEvent(EventCategory category) {
+    public void fireChangeEvent(EventCategory category) {
         ClientSessionChangeEvent event = new ClientSessionChangeEvent(this, category);
                 
         for (ClientSessionListener listener : clientSessionListeners) {
