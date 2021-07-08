@@ -12,6 +12,7 @@ import java.util.concurrent.ScheduledFuture;
 
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenuItem;
+import javax.swing.SwingUtilities;
 
 import edu.stanford.protege.metaproject.api.ProjectId;
 import uk.ac.manchester.cs.owl.owlapi.OWLOntologyManagerImpl;
@@ -200,7 +201,7 @@ public class EnableAutoUpdateAction extends AbstractClientAction implements Clie
 
         private void performUpdate(List<OWLOntologyChange> updates) {
         	getSessionRecorder().stopRecording();       	
-            ontology.getOWLOntologyManager().applyChanges(updates);
+            SwingUtilities.invokeLater(() -> ontology.getOWLOntologyManager().applyChanges(updates));
             getOWLEditorKit().getSearchManager().updateIndex(updates);
             getSessionRecorder().startRecording();
         	
